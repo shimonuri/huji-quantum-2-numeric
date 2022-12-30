@@ -3,6 +3,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 from scipy.optimize import curve_fit, brentq
 from scipy.integrate import simps
 from math import pi
+import pathlib
 import numpy as np
 import constants
 import potentials
@@ -33,19 +34,36 @@ def FindBoundState(potential, l, Emin, Emax, r_grid):
 class Task:
     def __init__(self, name):
         self.name = name
+        self.log_file = None
+        self.plot_file = None
 
-    def run(self):
+    def run(self, output_dir):
         raise NotImplementedError("Task.run() is not implemented")
+
+    def _log(self, text):
+        if self.log_file is None:
+            raise RuntimeError("log_file is not initialized")
+
+        print(text)
+        self.log_file.write(text + "\r\n")
+        self.log_file.flush()
+
+    def _open_output_files(self, output_dir):
+        if self.log_file is not None:
+            raise RuntimeError("log_file is already initialized")
+
+        self.plot_file = PdfPages(output_dir / "task1.pdf")
+        self.log_file = (output_dir / "task1.txt").open("wt")
+
+    def _close_output_files(self):
+        self.plot_file.close()
+        self.log_file.close()
 
 
 class Task1(Task):
-    def run(self):
-        pltfile = PdfPages("Task1.pdf")
-        sikum = open("Task1.sikum", "w")
-
-        line = f"\n\t Task 1"
-        print(line)
-        sikum.write(line)
+    def run(self, output_dir):
+        self._open_output_files(pathlib.Path(output_dir))
+        self._log(f"\n\t Task 1")
 
         l = 0
         potential = potentials.PointCoulomb
@@ -57,8 +75,7 @@ class Task1(Task):
         Evals = [-(0.9 + i * 0.05) * constants.RY for i in range(0, 5)]
 
         for Ep in Evals:
-            print(f"\t Task 1: E={Ep / constants.RY} Ry")
-            sikum.write(f"\n\t Task 1: E={Ep / constants.RY:6.2f} Ry")
+            self._log(f"\t Task 1: E={Ep / constants.RY} Ry")
             up = numerov.numerov_wf(Ep, l, potential, r_grid)
             plt.plot(r_grid, up, label=f"$E$ = {Ep / constants.RY:6.2f}")
 
@@ -72,11 +89,10 @@ class Task1(Task):
         plt.xlim(0.0, r_grid[-1])
         plt.legend()
         plt.grid(True)
-        pltfile.savefig()
+        self.plot_file.savefig()
         plt.close()
 
-        pltfile.close()
-        sikum.close()
+        self._close_output_files()
 
 
 class Task2(Task):
@@ -318,4 +334,3 @@ class Task5(Task):
                 sikum.write("\n" + line)
 
         sikum.close()
-
