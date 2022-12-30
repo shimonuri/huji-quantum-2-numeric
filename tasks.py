@@ -69,27 +69,34 @@ class PointNucleus(Task):
 
     def _solve(self):
         r_grid = self._get_r_grid(
-            rmin=1e-15 * constants.A_BHOR, rmax=10 * constants.A_BHOR, n_grid_points=int(1e3 + 1)
+            rmin=1e-15 * constants.A_BHOR,
+            rmax=10 * constants.A_BHOR,
+            n_grid_points=int(1e3 + 1),
         )
+        # create two plots
+        fig, axes = plt.subplots(1, 2, figsize=(12, 6))
         self._plot_numerov_solutions(
-            r_grid, 0, [-(0.9 + i * 0.05) * constants.RY for i in range(0, 5)]
+            r_grid, 0, [-(0.9 + i * 0.05) * constants.RY for i in range(0, 5)], axes[0], axes[1]
         )
-        self._plot_analytic_solution(r_grid)
-        plt.xlabel(f"$r$ [fm]")
-        plt.ylabel(f"$u$")
-        plt.xlim(0.0, r_grid[-1])
-        plt.legend()
-        plt.grid(True)
+        self._plot_analytic_solution(r_grid, axes[0], axes[1])
+        for ax in axes:
+            ax.legend()
+            ax.set_xlabel(f"$r$ [fm]")
+            ax.set_ylabel(f"$u$")
+            ax.set_xlim(0.0, r_grid[-1])
+            ax.legend()
+            ax.grid(True)
         self.plot_file.savefig()
-        plt.close()
 
     def _get_r_grid(self, rmin, rmax, n_grid_points):
         return np.linspace(rmin, rmax, num=n_grid_points, endpoint=True)
 
-    def _plot_numerov_solutions(self, r_grid, angular_momenta, energies):
+    def _plot_numerov_solutions(
+        self, r_grid, angular_momenta, energies, wave_ax, uwave_ax
+    ):
         for energy in energies:
             self._log(f"E={energy / constants.RY} Ry")
-            wave_function = numerov.numerov_wf(
+            uwave_function, wave_function = numerov.numerov_wf(
                 energy,
                 angular_momenta,
                 potentials.get_coulomb_potential(
@@ -99,18 +106,36 @@ class PointNucleus(Task):
                 mass_a=constants.N_NUCL,
                 mass_b=constants.M_PION,
             )
-            plt.plot(r_grid, wave_function, label=f"$E$ = {energy / constants.RY:6.2f}")
+            wave_ax.plot(
+                r_grid, wave_function, label=f"$E$ = {energy / constants.RY:6.2f}"
+            )
+            uwave_ax.plot(
+                r_grid, uwave_function, label=f"$E$ = {energy / constants.RY:6.2f}"
+            )
 
-    def _plot_analytic_solution(self, r_grid):
-        f_exact = (
+    def _plot_analytic_solution(self, r_grid, wave_ax, uwave_ax):
+        uwave_exact = (
             lambda r: (constants.Z / constants.A_BHOR) ** (3 / 2)
             * 2
             * np.exp(-constants.Z * r / constants.A_BHOR)
             * r
         )
-        plt.plot(
+        wave_exact = (
+            lambda r: (constants.Z / constants.A_BHOR) ** (3 / 2)
+                      * 2
+                      * np.exp(-constants.Z * r / constants.A_BHOR)
+                      * r
+        )
+        uwave_ax.plot(
             r_grid,
-            numerov.normalize(np.array([f_exact(r) for r in r_grid]), r_grid),
+            numerov.normalize(np.array([uwave_exact(r) for r in r_grid]), r_grid),
+            "--",
+            c="black",
+            label=f"Analytic",
+        )
+        wave_ax.plot(
+            r_grid,
+            numerov.normalize(np.array([uwave_exact(r) for r in r_grid]), r_grid),
             "--",
             c="black",
             label=f"Analytic",
