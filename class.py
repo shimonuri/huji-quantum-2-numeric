@@ -9,34 +9,34 @@ import numpy as np
 # =============================================================================
 # Constants
 # hbar*c, fine structure constant
-hbarc = 197.3269804  # MeV fm
-alpha_fs = constants.fine_structure
+HBARC = 197.3269804  # MeV fm
+ALPHA_FS = constants.fine_structure
 
 # Nucleus
 A = 12
 Z = 6
 
 # Masses in energy units [MeV]
-m_nucl = A * 931.49432
-m_pion = 139.57039
-m_red = m_nucl * m_pion / (m_nucl + m_pion)
+N_NUCL = A * 931.49432
+M_PION = 139.57039
+M_RED = N_NUCL * M_PION / (N_NUCL + M_PION)
 
 # typical length = bhor radius
-a_bhor = hbarc / (Z * alpha_fs * m_red)
+A_BHOR = HBARC / (Z * ALPHA_FS * M_RED)
 
 # Rydberg energy
-Ry = 0.5 * Z ** 2 * alpha_fs ** 2 * m_red
+RY = 0.5 * Z ** 2 * ALPHA_FS ** 2 * M_RED
 
 # Nuclear Radius [fm]
-R_nucl = A ** (1.0 / 3.0) * 1.2  # fm
+R_NUCL = A ** (1.0 / 3.0) * 1.2  # fm
 
-dummy = 1
+DUMMY = 1
 
 
 # ================================ POTENTIALS ================================================
 def PointCoulomb(r):
     ##  COMPLETE  ##
-    vv = dummy
+    vv = DUMMY
     ##  COMPLETE  ##
 
     return vv
@@ -45,7 +45,7 @@ def PointCoulomb(r):
 # -----------------------------------------------------------------------------
 def SmearedCoulomb(r):
     ##  COMPLETE  ##
-    vv = dummy
+    vv = DUMMY
     ##  COMPLETE  ##
 
     return vv
@@ -54,7 +54,7 @@ def SmearedCoulomb(r):
 # =============================================================================================
 def normalization(u, r_grid):
     ##  COMPLETE  ##
-    u_norm = dummy * u
+    u_norm = DUMMY * u
     ##  COMPLETE  ##
 
     return u_norm
@@ -63,7 +63,7 @@ def normalization(u, r_grid):
 # ==============================================================================================
 def energy_shift_perutrbation(r_grid, u):
     ##  COMPLETE  ##
-    e_shift = dummy
+    e_shift = DUMMY
     ##  COMPLETE  ##
 
     return e_shift
@@ -134,16 +134,16 @@ def Task1():
     potential = PointCoulomb
     n_grid_points = 10001
     rmin = 0
-    rmax = 10 * a_bhor
+    rmax = 10 * A_BHOR
     r_grid = np.linspace(rmin, rmax, num=n_grid_points, endpoint=True)
 
-    Evals = [-(0.9 + i * 0.05) * Ry for i in range(0, 5)]
+    Evals = [-(0.9 + i * 0.05) * RY for i in range(0, 5)]
 
     for Ep in Evals:
-        print(f"\t Task 1: E={Ep / Ry} Ry")
-        sikum.write(f"\n\t Task 1: E={Ep / Ry:6.2f} Ry")
+        print(f"\t Task 1: E={Ep / RY} Ry")
+        sikum.write(f"\n\t Task 1: E={Ep / RY:6.2f} Ry")
         up = NumerovWF(Ep, l, potential, r_grid)
-        plt.plot(r_grid, up, label=f"$E$ = {Ep / Ry:6.2f}")
+        plt.plot(r_grid, up, label=f"$E$ = {Ep / RY:6.2f}")
 
         ## COMPLETE ##
         f_exact = r_grid
@@ -176,13 +176,13 @@ def Task2():
     n_grid_points = 10001
 
     ngrid_list = [10 ** k for k in range(2, 6)]
-    rmax_list = np.array([5, 10, 15, 20]) * a_bhor
+    rmax_list = np.array([5, 10, 15, 20]) * A_BHOR
 
     Eval_nr = np.zeros((len(ngrid_list), len(rmax_list)))
     Err_nr = np.zeros((len(ngrid_list), len(rmax_list)))
 
-    Emin = -1.1 * Ry
-    Emax = -0.9 * Ry
+    Emin = -1.1 * RY
+    Emax = -0.9 * RY
     for jr in range(len(rmax_list)):
         for jn in range(len(ngrid_list)):
             rmax = rmax_list[jr]
@@ -209,7 +209,7 @@ def Task2():
     # plot eta vs N for different tmax
     for jr in range(len(rmax_list)):
         rmax = rmax_list[jr]
-        plt.loglog(ngrid_list, Err_nr[:, jr], "-.s", label=f"R={rmax / a_bhor} $a_B$")
+        plt.loglog(ngrid_list, Err_nr[:, jr], "-.s", label=f"R={rmax / A_BHOR} $a_B$")
     plt.xlabel(f"$N$")
     plt.ylabel(f"$\eta$")
     plt.xlim(ngrid_list[0], ngrid_list[-1])
@@ -220,10 +220,10 @@ def Task2():
     plt.close()
 
     # plot eta vs rmax
-    plt.semilogy(rmax_list / a_bhor, Err_nr[-1, :], "-s", label=f"N=$10^5$")
+    plt.semilogy(rmax_list / A_BHOR, Err_nr[-1, :], "-s", label=f"N=$10^5$")
     plt.xlabel(f"$R [a_B]$")
     plt.ylabel(f"$\eta$")
-    plt.xlim(0.0, rmax_list[-1] / a_bhor)
+    plt.xlim(0.0, rmax_list[-1] / A_BHOR)
     plt.legend()
     plt.grid(True)
     pltfile.savefig()
@@ -261,7 +261,7 @@ def Task3():
             Emin = Esteps[n - 1]
             Emax = Esteps[n]
             rmin = 0
-            rmax = (n + l) * 20 * a_bhor
+            rmax = (n + l) * 20 * A_BHOR
             r_grid = np.linspace(rmin, rmax, num=ngrid, endpoint=True)
 
             ## COMPLETE ##
@@ -273,10 +273,10 @@ def Task3():
 
             radius = rms_radius(r_grid, wf)
             umax = wf[-1]
-            Error = np.abs(1 - Ep / (-Ry / (n + l) ** 2))
+            Error = np.abs(1 - Ep / (-RY / (n + l) ** 2))
             line = (
                 f"  n={n:2d} l={l:2d}   E [MeV] = {Ep:.4E}  radius [fm] = {radius:7.3f}"
-                + f"  radius [a_B] = {radius / a_bhor:7.4f}   u(rmax) = {umax:9.2E}   |1-E/(-Ry/n^2)| = {Error:.3E}"
+                + f"  radius [a_B] = {radius / A_BHOR:7.4f}   u(rmax) = {umax:9.2E}   |1-E/(-Ry/n^2)| = {Error:.3E}"
             )
             print(line)
             sikum.write("\n" + line)
@@ -313,7 +313,7 @@ def Task4():
             Emin = Esteps[n - 1]
             Emax = Esteps[n]
             rmin = 0
-            rmax = (n + l) * 20 * a_bhor
+            rmax = (n + l) * 20 * A_BHOR
             r_grid = np.linspace(rmin, rmax, num=ngrid, endpoint=True)
 
             ## COMPLETE ##
@@ -370,7 +370,7 @@ def Task5():
             Emin = Esteps[n - 1]
             Emax = Esteps[n]
             rmin = 0
-            rmax = (n + l) * 25 * a_bhor
+            rmax = (n + l) * 25 * A_BHOR
             r_grid = np.linspace(rmin, rmax, num=ngrid, endpoint=True)
 
             ## COMPLETE ##
@@ -383,7 +383,7 @@ def Task5():
             diff = 1 - Ekg / Enr
             line = (
                 f"  n={n:2d} l={l:2d}  E_NR = {Enr:.6E}  E_KG = {Ekg:.6e}"
-                + f"  E_NR/Ry = {Enr / Ry:.6e}  E_KG/Ry = {Ekg / Ry:.6e}  |1-E_KG/E_NR| = {diff:.3e}"
+                + f"  E_NR/Ry = {Enr / RY:.6e}  E_KG/Ry = {Ekg / RY:.6e}  |1-E_KG/E_NR| = {diff:.3e}"
             )
             print(line)
             sikum.write("\n" + line)
@@ -399,8 +399,8 @@ def Task5():
 #####################################################
 
 print(f"\n\t Numerov Solver for pi-12C system:")
-line = f"\n\t nucleus mass= {m_nucl} MeV \n\t pion    mass= {m_pion} MeV"
-line = line + f"\n\t reduced mass= {m_red} MeV\n"
+line = f"\n\t nucleus mass= {N_NUCL} MeV \n\t pion    mass= {M_PION} MeV"
+line = line + f"\n\t reduced mass= {M_RED} MeV\n"
 print(line)
 
 Task1()
