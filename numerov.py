@@ -4,12 +4,7 @@ import scipy.constants
 
 
 def numerov_wf(
-    energy,
-    angular_momentum,
-    potential,
-    r_grid,
-    mass_a,
-    mass_b,
+    energy, angular_momentum, potential, r_grid, mass_a, mass_b,
 ):
     reduced_mass = mass_a * mass_b / (mass_a + mass_b)
     inhomogeneous = (
@@ -39,7 +34,7 @@ def numerov_kgwf(E, l, potential, r_grid):
 
 
 def normalize(wave_function, r_grid):
-    norm = np.sqrt(np.trapz(wave_function ** 2, r_grid))
+    norm = np.sqrt(np.trapz(y=np.square(np.abs(wave_function)), x=r_grid))
     if norm > 0:
         return wave_function / norm
 

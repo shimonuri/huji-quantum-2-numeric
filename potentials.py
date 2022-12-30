@@ -2,7 +2,7 @@ import constants
 
 
 def get_coulomb_potential(const):
-    return lambda r: const * 1 / r
+    return lambda r: -const / r
 
 
 # -----------------------------------------------------------------------------

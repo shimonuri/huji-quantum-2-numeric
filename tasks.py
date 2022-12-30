@@ -69,12 +69,12 @@ class PointNucleus(Task):
 
     def _solve(self):
         r_grid = self._get_r_grid(
-            rmin=1e-2, rmax=10 * constants.A_BHOR, n_grid_points=10001
+            rmin=1e-15 * constants.A_BHOR, rmax=10 * constants.A_BHOR, n_grid_points=int(1e3 + 1)
         )
         self._plot_numerov_solutions(
             r_grid, 0, [-(0.9 + i * 0.05) * constants.RY for i in range(0, 5)]
         )
-        # self._plot_analytic_solution(r_grid)
+        self._plot_analytic_solution(r_grid)
         plt.xlabel(f"$r$ [fm]")
         plt.ylabel(f"$u$")
         plt.xlim(0.0, r_grid[-1])
@@ -92,7 +92,9 @@ class PointNucleus(Task):
             wave_function = numerov.numerov_wf(
                 energy,
                 angular_momenta,
-                potentials.get_coulomb_potential(1),
+                potentials.get_coulomb_potential(
+                    constants.Z * constants.HBARC * constants.ALPHA_FS
+                ),
                 r_grid,
                 mass_a=constants.N_NUCL,
                 mass_b=constants.M_PION,
@@ -100,8 +102,19 @@ class PointNucleus(Task):
             plt.plot(r_grid, wave_function, label=f"$E$ = {energy / constants.RY:6.2f}")
 
     def _plot_analytic_solution(self, r_grid):
-        f_exact = lambda r: 1 / (1 + r ** 2)
-        plt.plot(r_grid, f_exact, "--", c="black", label=f"Analytic")
+        f_exact = (
+            lambda r: (constants.Z / constants.A_BHOR) ** (3 / 2)
+            * 2
+            * np.exp(-constants.Z * r / constants.A_BHOR)
+            * r
+        )
+        plt.plot(
+            r_grid,
+            numerov.normalize(np.array([f_exact(r) for r in r_grid]), r_grid),
+            "--",
+            c="black",
+            label=f"Analytic",
+        )
 
 
 class Task2(Task):
