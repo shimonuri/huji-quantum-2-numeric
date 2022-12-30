@@ -64,17 +64,20 @@ class Task1(Task):
     def run(self, output_dir):
         self._open_output_files(pathlib.Path(output_dir))
         self._log(f"Start")
+        f_exact, r_grid = self._numerov()
+        self._plot_result(f_exact, r_grid)
+        self._close_output_files()
 
+    def _get_r_grid(self, rmin, rmax, n_grid_points):
+        return np.linspace(rmin, rmax, num=n_grid_points, endpoint=True)
+
+    def _numerov(self):
         l = 0
         potential = potentials.PointCoulomb
-        n_grid_points = 10001
-        rmin = 0
-        rmax = 10 * constants.A_BHOR
-        r_grid = np.linspace(rmin, rmax, num=n_grid_points, endpoint=True)
-
-        Evals = [-(0.9 + i * 0.05) * constants.RY for i in range(0, 5)]
-
-        for Ep in Evals:
+        r_grid = self._get_r_grid(
+            rmin=0, rmax=10 * constants.A_BHOR, n_grid_points=10001
+        )
+        for Ep in [-(0.9 + i * 0.05) * constants.RY for i in range(0, 5)]:
             self._log(f"E={Ep / constants.RY} Ry")
             up = numerov.numerov_wf(Ep, l, potential, r_grid)
             plt.plot(r_grid, up, label=f"$E$ = {Ep / constants.RY:6.2f}")
@@ -82,8 +85,10 @@ class Task1(Task):
             ## COMPLETE ##
             f_exact = r_grid
             ## COMPLETE ##
-        plt.plot(r_grid, f_exact, "--", c="black", label=f"Analytic")
+        return f_exact, r_grid
 
+    def _plot_result(self, f_exact, r_grid):
+        plt.plot(r_grid, f_exact, "--", c="black", label=f"Analytic")
         plt.xlabel(f"$r$ [fm]")
         plt.ylabel(f"$u$")
         plt.xlim(0.0, r_grid[-1])
@@ -91,8 +96,6 @@ class Task1(Task):
         plt.grid(True)
         self.plot_file.savefig()
         plt.close()
-
-        self._close_output_files()
 
 
 class Task2(Task):
