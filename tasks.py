@@ -230,7 +230,7 @@ class Task4(Task):
         ngrid = 40000
         # n = radial excitation
         # l = orbital mometum
-        sikum.write(f"\n Units MeV, fm")
+        self._log(f"\n Units MeV, fm")
         for l in range(0, lmax + 1):
             Esteps = np.zeros(nmax - l + 1)
             ## COMPLETE ##
