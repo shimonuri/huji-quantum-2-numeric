@@ -1,12 +1,8 @@
 import constants
 
 
-def PointCoulomb(r):
-    ##  COMPLETE  ##
-    vv = constants.DUMMY
-    ##  COMPLETE  ##
-
-    return vv
+def get_coulomb_potential(const):
+    return lambda r: const * 1 / r
 
 
 # -----------------------------------------------------------------------------

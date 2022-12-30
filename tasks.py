@@ -52,7 +52,7 @@ class Task:
         if self.log_file is not None:
             raise RuntimeError("log_file is already initialized")
 
-        self.plot_file = PdfPages(output_dir / "task1.pdf")
+        self.plot_file = PdfPages(output_dir / f"{self.name}.pdf")
         self.log_file = (output_dir / f"{self.name}.log").open("wt")
 
     def _close_output_files(self):
@@ -60,35 +60,21 @@ class Task:
         self.log_file.close()
 
 
-class Task1(Task):
+class PointNucleus(Task):
     def run(self, output_dir):
         self._open_output_files(pathlib.Path(output_dir))
         self._log(f"Start")
-        f_exact, r_grid = self._numerov()
-        self._plot_result(f_exact, r_grid)
+        self._solve()
         self._close_output_files()
 
-    def _get_r_grid(self, rmin, rmax, n_grid_points):
-        return np.linspace(rmin, rmax, num=n_grid_points, endpoint=True)
-
-    def _numerov(self):
-        l = 0
-        potential = potentials.PointCoulomb
+    def _solve(self):
         r_grid = self._get_r_grid(
-            rmin=0, rmax=10 * constants.A_BHOR, n_grid_points=10001
+            rmin=1e-2, rmax=10 * constants.A_BHOR, n_grid_points=10001
         )
-        for Ep in [-(0.9 + i * 0.05) * constants.RY for i in range(0, 5)]:
-            self._log(f"E={Ep / constants.RY} Ry")
-            up = numerov.numerov_wf(Ep, l, potential, r_grid)
-            plt.plot(r_grid, up, label=f"$E$ = {Ep / constants.RY:6.2f}")
-
-            ## COMPLETE ##
-            f_exact = r_grid
-            ## COMPLETE ##
-        return f_exact, r_grid
-
-    def _plot_result(self, f_exact, r_grid):
-        plt.plot(r_grid, f_exact, "--", c="black", label=f"Analytic")
+        self._plot_numerov_solutions(
+            r_grid, 0, [-(0.9 + i * 0.05) * constants.RY for i in range(0, 5)]
+        )
+        # self._plot_analytic_solution(r_grid)
         plt.xlabel(f"$r$ [fm]")
         plt.ylabel(f"$u$")
         plt.xlim(0.0, r_grid[-1])
@@ -97,6 +83,26 @@ class Task1(Task):
         self.plot_file.savefig()
         plt.close()
 
+    def _get_r_grid(self, rmin, rmax, n_grid_points):
+        return np.linspace(rmin, rmax, num=n_grid_points, endpoint=True)
+
+    def _plot_numerov_solutions(self, r_grid, angular_momenta, energies):
+        for energy in energies:
+            self._log(f"E={energy / constants.RY} Ry")
+            wave_function = numerov.numerov_wf(
+                energy,
+                angular_momenta,
+                potentials.get_coulomb_potential(1),
+                r_grid,
+                mass_a=constants.N_NUCL,
+                mass_b=constants.M_PION,
+            )
+            plt.plot(r_grid, wave_function, label=f"$E$ = {energy / constants.RY:6.2f}")
+
+    def _plot_analytic_solution(self, r_grid):
+        f_exact = lambda r: 1 / (1 + r ** 2)
+        plt.plot(r_grid, f_exact, "--", c="black", label=f"Analytic")
+
 
 class Task2(Task):
     def run(self, output_dir):
@@ -104,7 +110,7 @@ class Task2(Task):
         self._log(f"Start")
 
         l = 0
-        potential = potentials.PointCoulomb
+        potential = potentials.get_coulomb_potential
         n_grid_points = 10001
 
         ngrid_list = [10 ** k for k in range(2, 6)]
@@ -171,7 +177,7 @@ class Task3(Task):
         self._open_output_files(pathlib.Path(output_dir))
         self._log(f"Start")
 
-        potential = potentials.PointCoulomb
+        potential = potentials.get_coulomb_potential
 
         nmax = 4
         lmax = 2
@@ -225,7 +231,7 @@ class Task4(Task):
         self._open_output_files(pathlib.Path(output_dir))
         self._log(f"Start")
 
-        potential_p = potentials.PointCoulomb
+        potential_p = potentials.get_coulomb_potential
         potential_s = potentials.SmearedCoulomb
 
         nmax = 4
@@ -278,7 +284,7 @@ class Task5(Task):
         self._open_output_files(pathlib.Path(output_dir))
         self._log(f"Start")
 
-        potential = potentials.PointCoulomb
+        potential = potentials.get_coulomb_potential
 
         nmax = 4
         lmax = 2
