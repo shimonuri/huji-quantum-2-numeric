@@ -6,17 +6,9 @@ from math import pi
 import numpy as np
 import constants
 import potentials
-
-# =============================================================================================
-def normalization(u, r_grid):
-    ##  COMPLETE  ##
-    u_norm = constants.DUMMY * u
-    ##  COMPLETE  ##
-
-    return u_norm
+import numerov
 
 
-# ==============================================================================================
 def energy_shift_perutrbation(r_grid, u):
     ##  COMPLETE  ##
     e_shift = constants.DUMMY
@@ -25,36 +17,6 @@ def energy_shift_perutrbation(r_grid, u):
     return e_shift
 
 
-# ==============================================================================================
-def NumerovWF(E, l, potential, r_grid):
-    W = np.zeros(len(r_grid))
-    u = np.zeros(len(r_grid))
-
-    ##  COMPLETE  ##
-
-    ##  COMPLETE  ##
-
-    u_norm = normalization(u, r_grid)
-
-    return u_norm
-
-
-# ==============================================================================================
-# Solution to the Klein-Gordon w.f.
-def NumerovKGWF(E, l, potential, r_grid):
-    W = np.zeros(len(r_grid))
-    u = np.zeros(len(r_grid))
-
-    ##  COMPLETE  ##
-
-    ##  COMPLETE  ##
-
-    u_norm = normalization(u, r_grid)
-
-    return u_norm
-
-
-# ===============================================================================================
 def FindBoundState(potential, l, Emin, Emax, r_grid):
     # locate the exact binding energy in the range (Emin,Emax)
     # return:
@@ -68,15 +30,6 @@ def FindBoundState(potential, l, Emin, Emax, r_grid):
     return (E, u)
 
 
-# =============================================================================
-def rms_radius(r_grid, u):
-    ## COMPLETE ##
-    radius = 0.0
-    ## COMPLETE ##
-
-    return radius
-
-
 class Task:
     def __init__(self, name):
         self.name = name
@@ -85,7 +38,6 @@ class Task:
         raise NotImplementedError("Task.run() is not implemented")
 
 
-# =============================================================================
 class Task1(Task):
     def run(self):
         pltfile = PdfPages("Task1.pdf")
@@ -107,7 +59,7 @@ class Task1(Task):
         for Ep in Evals:
             print(f"\t Task 1: E={Ep / constants.RY} Ry")
             sikum.write(f"\n\t Task 1: E={Ep / constants.RY:6.2f} Ry")
-            up = NumerovWF(Ep, l, potential, r_grid)
+            up = numerov.numerov_wf(Ep, l, potential, r_grid)
             plt.plot(r_grid, up, label=f"$E$ = {Ep / constants.RY:6.2f}")
 
             ## COMPLETE ##
@@ -240,7 +192,7 @@ class Task3(Task):
 
                 ## COMPLETE ##
 
-                radius = rms_radius(r_grid, wf)
+                radius = self._get_rms_radius(r_grid, wf)
                 umax = wf[-1]
                 Error = np.abs(1 - Ep / (-constants.RY / (n + l) ** 2))
                 line = (
@@ -251,6 +203,14 @@ class Task3(Task):
                 sikum.write("\n" + line)
 
         sikum.close()
+
+    @staticmethod
+    def _get_rms_radius(self, r_grid, u):
+        ## COMPLETE ##
+        radius = 0.0
+        ## COMPLETE ##
+
+        return radius
 
 
 class Task4(Task):
