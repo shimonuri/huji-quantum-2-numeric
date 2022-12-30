@@ -96,13 +96,9 @@ class Task1(Task):
 
 
 class Task2(Task):
-    def run(self):
-        pltfile = PdfPages("Task2.pdf")
-        sikum = open("Task2.sikum", "w")
-
-        line = f"\n\t Task 2"
-        print(line)
-        sikum.write(line)
+    def run(self, output_dir):
+        self._open_output_files(pathlib.Path(output_dir))
+        self._log(f"Start")
 
         l = 0
         potential = potentials.PointCoulomb
@@ -132,12 +128,10 @@ class Task2(Task):
                 Eval_nr[jn, jr] = Ep
                 Err_nr[jn, jr] = Error
 
-                line = (
+                self._log(
                     f"Energy level #{1} R={rmax:6.1f}  N={ngrid:7d} E [MeV] = {Ep:.6E}"
                     + f"   Validation: 1-E/(-Ry/n^2) = {Error:.6E}"
                 )
-                print(line)
-                sikum.write("\n" + line)
 
         # plot eta vs N for different tmax
         for jr in range(len(rmax_list)):
@@ -151,7 +145,7 @@ class Task2(Task):
         plt.ylim(1.0e-8, 0.1)
         plt.legend()
         plt.grid(True)
-        pltfile.savefig()
+        self.plot_file.savefig()
         plt.close()
 
         # plot eta vs rmax
@@ -163,20 +157,16 @@ class Task2(Task):
         plt.xlim(0.0, rmax_list[-1] / constants.A_BHOR)
         plt.legend()
         plt.grid(True)
-        pltfile.savefig()
+        self.plot_file.savefig()
         plt.close()
 
-        pltfile.close()
-        sikum.close()
+        self._close_output_files()
 
 
 class Task3(Task):
-    def run(self):
-        sikum = open("Task3.sikum", "w")
-
-        line = f"\n\t Task 3"
-        print(line)
-        sikum.write(line)
+    def run(self, output_dir):
+        self._open_output_files(pathlib.Path(output_dir))
+        self._log(f"Start")
 
         potential = potentials.PointCoulomb
 
@@ -211,14 +201,12 @@ class Task3(Task):
                 radius = self._get_rms_radius(r_grid, wf)
                 umax = wf[-1]
                 Error = np.abs(1 - Ep / (-constants.RY / (n + l) ** 2))
-                line = (
+                self._log(
                     f"  n={n:2d} l={l:2d}   E [MeV] = {Ep:.4E}  radius [fm] = {radius:7.3f}"
                     + f"  radius [a_B] = {radius / constants.A_BHOR:7.4f}   u(rmax) = {umax:9.2E}   |1-E/(-Ry/n^2)| = {Error:.3E}"
                 )
-                print(line)
-                sikum.write("\n" + line)
 
-        sikum.close()
+        self._close_output_files()
 
     @staticmethod
     def _get_rms_radius(self, r_grid, u):
@@ -230,12 +218,9 @@ class Task3(Task):
 
 
 class Task4(Task):
-    def run(self):
-        sikum = open("Task4.sikum", "w")
-
-        line = f"\n\t Task 4"
-        print(line)
-        sikum.write(line)
+    def run(self, output_dir):
+        self._open_output_files(pathlib.Path(output_dir))
+        self._log(f"Start")
 
         potential_p = potentials.PointCoulomb
         potential_s = potentials.SmearedCoulomb
@@ -276,24 +261,19 @@ class Task4(Task):
 
                 umax = wfp[-1]
                 Error = np.abs(1 - dE_perturb / (Es - Ep))
-                line = (
+                self._log(
                     f"  n={n:2d} l={l:2d}  Ep = {Ep:.6E}  Es = {Es:.6e}"
                     + f"  dE_exct ={Es - Ep:9.2e}  dE_prtb ={dE_perturb:9.2e}"
                     + f"  1-dE/E = {(Es - Ep) / Ep:.2e}  |1-dE_prtb/dE_exct| = {Error:.2e}"
                 )
-                print(line)
-                sikum.write("\n" + line)
 
-        sikum.close()
+        self._close_output_files()
 
 
 class Task5(Task):
-    def run(self):
-        sikum = open("Task5.sikum", "w")
-
-        line = f"\n\t Task 5"
-        print(line)
-        sikum.write(line)
+    def run(self, output_dir):
+        self._open_output_files(pathlib.Path(output_dir))
+        self._log(f"Start")
 
         potential = potentials.PointCoulomb
 
@@ -302,7 +282,7 @@ class Task5(Task):
         ngrid = 200000
         # n = radial excitation
         # l = orbital mometum
-        sikum.write(f"\n Units MeV, fm")
+        self._log(f"\n Units MeV, fm")
         for l in range(0, lmax + 1):
             Esteps = np.zeros(nmax - l + 1)
             ## COMPLETE ##
@@ -326,11 +306,9 @@ class Task5(Task):
                 ## COMPLETE ##
 
                 diff = 1 - Ekg / Enr
-                line = (
+                self._log(
                     f"  n={n:2d} l={l:2d}  E_NR = {Enr:.6E}  E_KG = {Ekg:.6e}"
                     + f"  E_NR/Ry = {Enr / constants.RY:.6e}  E_KG/Ry = {Ekg / RY:.6e}  |1-E_KG/E_NR| = {diff:.3e}"
                 )
-                print(line)
-                sikum.write("\n" + line)
 
-        sikum.close()
+        self._close_output_files()
