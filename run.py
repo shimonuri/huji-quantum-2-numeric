@@ -5,16 +5,16 @@ import constants
 def main():
     _print_hello_message()
     for task in _get_tasks():
-        task.run()
+        task.run("output")
 
 
 def _get_tasks():
     return [
         tasks.Task1("Task 1"),
-        tasks.Task2("Task 2"),
-        tasks.Task3("Task 3"),
-        tasks.Task4("Task 4"),
-        tasks.Task5("Task 5"),
+        # tasks.Task2("Task 2"),
+        # tasks.Task3("Task 3"),
+        # tasks.Task4("Task 4"),
+        # tasks.Task5("Task 5"),
     ]
 
 

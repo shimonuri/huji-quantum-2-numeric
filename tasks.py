@@ -43,9 +43,9 @@ class Task:
     def _log(self, text):
         if self.log_file is None:
             raise RuntimeError("log_file is not initialized")
-
-        print(text)
-        self.log_file.write(text + "\r\n")
+        message = f"{self.name}: {text}"
+        print(message)
+        self.log_file.write(message + "\n")
         self.log_file.flush()
 
     def _open_output_files(self, output_dir):
@@ -53,7 +53,7 @@ class Task:
             raise RuntimeError("log_file is already initialized")
 
         self.plot_file = PdfPages(output_dir / "task1.pdf")
-        self.log_file = (output_dir / "task1.txt").open("wt")
+        self.log_file = (output_dir / f"{self.name}.log").open("wt")
 
     def _close_output_files(self):
         self.plot_file.close()
@@ -63,7 +63,7 @@ class Task:
 class Task1(Task):
     def run(self, output_dir):
         self._open_output_files(pathlib.Path(output_dir))
-        self._log(f"\n\t Task 1")
+        self._log(f"Start")
 
         l = 0
         potential = potentials.PointCoulomb
@@ -75,7 +75,7 @@ class Task1(Task):
         Evals = [-(0.9 + i * 0.05) * constants.RY for i in range(0, 5)]
 
         for Ep in Evals:
-            self._log(f"\t Task 1: E={Ep / constants.RY} Ry")
+            self._log(f"E={Ep / constants.RY} Ry")
             up = numerov.numerov_wf(Ep, l, potential, r_grid)
             plt.plot(r_grid, up, label=f"$E$ = {Ep / constants.RY:6.2f}")
 
