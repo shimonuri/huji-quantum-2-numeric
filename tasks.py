@@ -319,12 +319,3 @@ class Task5(Task):
 
         sikum.close()
 
-
-def get_tasks():
-    return [
-        Task1("Task 1"),
-        Task2("Task 2"),
-        Task3("Task 3"),
-        Task4("Task 4"),
-        Task5("Task 5"),
-    ]
