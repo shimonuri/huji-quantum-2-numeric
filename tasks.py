@@ -33,7 +33,8 @@ def FindBoundState(potential, l, Emin, Emax, r_grid):
 
 
 class Task:
-    def __init__(self, name):
+    def __init__(self, name, **kwargs):
+        super().__init__(**kwargs)
         self.name = name
         self.log_file = None
         self.plot_file = None
