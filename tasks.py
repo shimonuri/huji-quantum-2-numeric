@@ -3,6 +3,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 from scipy.optimize import curve_fit, brentq
 from scipy.integrate import simps
 from math import pi
+import itertools
 import pathlib
 import numpy as np
 import constants
@@ -74,9 +75,7 @@ class PointNucleus(Task):
         self._open_output_files(pathlib.Path(output_dir))
         self._log(f"Start")
         r_grid = self._get_r_grid(
-            rmin=self.rmin,
-            rmax=self.rmax,
-            n_grid_points=self.n_grid_points,
+            rmin=self.rmin, rmax=self.rmax, n_grid_points=self.n_grid_points,
         )
         analytic_solution, numeric_solutions = self._solve(
             energies=self.energies, r_grid=r_grid
@@ -172,75 +171,102 @@ class PointNucleus(Task):
                 np.array([uwave_exact(r) for r in r_grid]), r_grid
             ),
             r_grid=r_grid,
+            steps=len(r_grid),
         )
 
 
-class Task2(Task):
+class PointNucleusFindBoundState(Task):
+    def __init__(
+        self, rmin, max_radii, energy_min, energy_max, energy_step, angular_momenta, **kwargs
+    ):
+        super().__init__(**kwargs)
+        if energy_min >= energy_max:
+            raise ValueError("energy_min must be less than energy_max")
+        self.rmin = rmin
+        self.max_radii = max_radii
+        self.energy_min = energy_min
+        self.energy_max = energy_max
+        self.energy_step = energy_step
+        self.angular_momenta = angular_momenta
+
     def run(self, output_dir):
         self._open_output_files(pathlib.Path(output_dir))
         self._log(f"Start")
-
         l = 0
-        potential = potentials.get_coulomb_potential
-        n_grid_points = 10001
-
-        ngrid_list = [10 ** k for k in range(2, 6)]
-        rmax_list = np.array([5, 10, 15, 20]) * constants.A_BHOR
-
-        Eval_nr = np.zeros((len(ngrid_list), len(rmax_list)))
-        Err_nr = np.zeros((len(ngrid_list), len(rmax_list)))
-
-        Emin = -1.1 * constants.RY
-        Emax = -0.9 * constants.RY
-        for jr in range(len(rmax_list)):
-            for jn in range(len(ngrid_list)):
-                rmax = rmax_list[jr]
-                ngrid = ngrid_list[jn]
-
-                r_grid = np.linspace(0.0, rmax, num=ngrid, endpoint=True)
-
-                ## COMPLETE ##
-                ## Ep,wf = FindBoundState(...) ##
-                Ep = 0.0
-                Error = 99999.0
-                ## COMPLETE ##
-
-                Eval_nr[jn, jr] = Ep
-                Err_nr[jn, jr] = Error
-
-                self._log(
-                    f"Energy level #{1} R={rmax:6.1f}  N={ngrid:7d} E [MeV] = {Ep:.6E}"
-                    + f"   Validation: 1-E/(-Ry/n^2) = {Error:.6E}"
-                )
-
-        # plot eta vs N for different tmax
-        for jr in range(len(rmax_list)):
-            rmax = rmax_list[jr]
-            plt.loglog(
-                ngrid_list, Err_nr[:, jr], "-.s", label=f"R={rmax / A_BHOR} $a_B$"
-            )
-        plt.xlabel(f"$N$")
-        plt.ylabel(f"$\eta$")
-        plt.xlim(ngrid_list[0], ngrid_list[-1])
-        plt.ylim(1.0e-8, 0.1)
-        plt.legend()
-        plt.grid(True)
-        self.plot_file.savefig()
-        plt.close()
-
-        # plot eta vs rmax
-        plt.semilogy(
-            rmax_list / constants.A_BHOR, Err_nr[-1, :], "-s", label=f"N=$10^5$"
+        potential = potentials.get_coulomb_potential(
+            constants.Z * constants.HBARC * constants.ALPHA_FS
         )
-        plt.xlabel(f"$R [a_B]$")
-        plt.ylabel(f"$\eta$")
-        plt.xlim(0.0, rmax_list[-1] / constants.A_BHOR)
-        plt.legend()
-        plt.grid(True)
+
+        numbers_of_steps = [10 ** k for k in range(2, 6)]
+        steps_and_max_radius_to_bound_state = self._find_bounded_states(
+            potential=potential,
+            max_radii=self.max_radii,
+            numbers_of_steps=numbers_of_steps,
+        )
+        self._plot(steps_and_max_radius_to_bound_state, self.max_radii, numbers_of_steps)
+        self._close_output_files()
+
+    def _plot(
+        self, steps_and_max_radius_to_bound_state, max_radiuses, numbers_of_steps
+    ):
+        for max_radius in max_radiuses:
+            bounded_states = [
+                steps_and_max_radius_to_bound_state[(steps, max_radius)]
+                for steps in numbers_of_steps
+            ]
+            plt.loglog(
+                [bounded_state.steps for bounded_state in bounded_states],
+                [bounded_state.error for bounded_state in bounded_states],
+                "-.s",
+                label=f"R={max_radius / constants.A_BHOR} $a_B$",
+            )
+        #
+        # plt.xlabel(f"$N$")
+        # plt.ylabel(f"$\eta$")
+        # plt.xlim(numbers_of_steps[0], numbers_of_steps[-1])
+        # plt.ylim(1.0e-8, 0.1)
+        # plt.legend()
+        # plt.grid(True)
+        # self.plot_file.savefig()
+        # plt.close()
+        # # plot eta vs rmax
+        # plt.semilogy(
+        #     max_radiuses / constants.A_BHOR, Err_nr[-1, :], "-s", label=f"N=$10^5$"
+        # )
+        # plt.xlabel(f"$R [a_B]$")
+        # plt.ylabel(f"$\eta$")
+        # plt.xlim(0.0, max_radiuses[-1] / constants.A_BHOR)
+        # plt.legend()
+        # plt.grid(True)
         self.plot_file.savefig()
         plt.close()
 
-        self._close_output_files()
+    def _find_bounded_states(self, max_radii, numbers_of_steps, potential):
+        steps_and_max_radius_to_bound_state = {}
+        for max_radius, number_of_steps in itertools.product(
+            max_radii, numbers_of_steps
+        ):
+            r_grid = np.linspace(self.rmin, max_radius, num=number_of_steps, endpoint=True)
+
+            solution = numerov.find_bound_state(
+                mass_a=constants.N_NUCL,
+                mass_b=constants.M_PION,
+                energy_min=self.energy_min,
+                energy_max=self.energy_max,
+                energy_step=self.energy_step,
+                angular_momentum=self.angular_momenta,
+                potential=potential,
+                r_grid=r_grid,
+            )
+            steps_and_max_radius_to_bound_state[
+                (number_of_steps, max_radius)
+            ] = solution
+
+            self._log(
+                f"Energy level #{1} R={max_radius:6.1f}  N={number_of_steps:7d} E [MeV] = {solution.energy:.6E}"
+                + f"   Validation: 1-E/(-Ry/n^2) = {solution.error:.6E}"
+            )
+        return steps_and_max_radius_to_bound_state
 
 
 class Task3(Task):

@@ -39,7 +39,27 @@ def numerov_wf(
         angular_momentum=angular_momentum,
         energy=energy,
         r_grid=r_grid,
+        steps=len(r_grid),
     )
+
+
+def find_bound_state(
+    potential,
+    r_grid,
+    mass_a,
+    mass_b,
+    angular_momentum,
+    energy_min,
+    energy_max,
+    energy_step,
+):
+    energies = np.arange(energy_min, energy_max, energy_step)
+    solutions = []
+    for energy in energies:
+        solutions.append(
+            numerov_wf(energy, angular_momentum, potential, r_grid, mass_a, mass_b,)
+        )
+    return min(solutions, key=lambda s: s.wave_function[-1])
 
 
 # Solution to the Klein-Gordon w.f.
@@ -47,4 +67,3 @@ def numerov_kgwf(E, l, potential, r_grid):
     work = np.zeros(len(r_grid))
     wave_function = np.zeros(len(r_grid))
     return solution.normalize(wave_function, r_grid)
-

@@ -10,6 +10,15 @@ class Solution:
     angular_momentum: int
     energy: float
     r_grid: np.ndarray
+    steps: int
+
+    @property
+    def r_max(self):
+        return self.r_grid[-1]
+
+    @property
+    def error(self):
+        return np.abs(self.wave_function[-1])
 
 
 def add_spherical_harmonic(wave_function_no_sph, l, m):
