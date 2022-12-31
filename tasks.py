@@ -62,17 +62,23 @@ class Task:
 
 
 class PointNucleus(Task):
+    def __init__(self, rmin, rmax, n_grid_points, energies, **kwargs):
+        super().__init__(**kwargs)
+        self.rmin = rmin
+        self.rmax = rmax
+        self.n_grid_points = n_grid_points
+        self.energies = energies
+
     def run(self, output_dir):
         self._open_output_files(pathlib.Path(output_dir))
         self._log(f"Start")
         r_grid = self._get_r_grid(
-            rmin=1e-15 * constants.A_BHOR,
-            rmax=10 * constants.A_BHOR,
-            n_grid_points=int(1e3 + 1),
+            rmin=self.rmin,
+            rmax=self.rmax,
+            n_grid_points=self.n_grid_points,
         )
-        energies = [-(0.9 + i * 0.05) * constants.RY for i in range(0, 5)]
         analytic_solution, numeric_solutions = self._solve(
-            energies=energies, r_grid=r_grid
+            energies=self.energies, r_grid=r_grid
         )
         self._plot(analytic_solution, numeric_solutions)
         self._close_output_files()

@@ -10,7 +10,13 @@ def main():
 
 def _get_tasks():
     return [
-        tasks.PointNucleus("PointNucleus (Task 1)"),
+        tasks.PointNucleus(
+            name="PointNucleus (Task 1)",
+            rmin=1e-15 * constants.A_BHOR,
+            rmax=10 * constants.A_BHOR,
+            n_grid_points=int(1e3 + 1),
+            energies=[-(0.9 + i * 0.05) * constants.RY for i in range(0, 5)],
+        ),
         # tasks.Task2("Task 2"),
         # tasks.Task3("Task 3"),
         # tasks.Task4("Task 4"),
