@@ -1,6 +1,6 @@
 import numpy as np
 import constants
-import scipy.constants
+import solution
 
 
 def numerov_wf(
@@ -24,23 +24,27 @@ def numerov_wf(
             * (1 + (1 / 12) * r_diff ** 2 * inhomogeneous(r_grid[i - 1]))
         ) / (1 + (1 / 12) * r_diff ** 2 * inhomogeneous(r_grid[i + 1]))
 
-    wave_fucntion = np.zeros(len(r_grid))
+    wave_function_no_sph = np.zeros(len(r_grid))
     for i in range(len(u_wave_function)):
-        wave_fucntion[i] = u_wave_function[i] / r_grid[i]
+        wave_function_no_sph[i] = u_wave_function[i] / r_grid[i]
 
-    return normalize(u_wave_function, r_grid), normalize(wave_fucntion, r_grid)
+    return solution.Solution(
+        uwave_function=solution.normalize(u_wave_function, r_grid),
+        wave_function=solution.normalize(
+            solution.add_spherical_harmonic(
+                wave_function_no_sph, l=angular_momentum, m=0
+            ),
+            r_grid,
+        ),
+        angular_momentum=angular_momentum,
+        energy=energy,
+        r_grid=r_grid,
+    )
 
 
 # Solution to the Klein-Gordon w.f.
 def numerov_kgwf(E, l, potential, r_grid):
     work = np.zeros(len(r_grid))
     wave_function = np.zeros(len(r_grid))
-    return normalize(wave_function, r_grid)
+    return solution.normalize(wave_function, r_grid)
 
-
-def normalize(wave_function, r_grid):
-    norm = np.sqrt(np.trapz(y=np.square(np.abs(wave_function)), x=r_grid))
-    if norm > 0:
-        return wave_function / norm
-
-    return wave_function

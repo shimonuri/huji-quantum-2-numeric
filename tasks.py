@@ -8,6 +8,7 @@ import numpy as np
 import constants
 import potentials
 import numerov
+import solution
 
 
 def energy_shift_perutrbation(r_grid, u):
@@ -64,26 +65,55 @@ class PointNucleus(Task):
     def run(self, output_dir):
         self._open_output_files(pathlib.Path(output_dir))
         self._log(f"Start")
-        self._solve()
-        self._close_output_files()
-
-    def _solve(self):
         r_grid = self._get_r_grid(
             rmin=1e-15 * constants.A_BHOR,
             rmax=10 * constants.A_BHOR,
             n_grid_points=int(1e3 + 1),
         )
-        # create two plots
-        fig, axes = plt.subplots(1, 2, figsize=(12, 6))
-        self._plot_numerov_solutions(
-            r_grid, 0, [-(0.9 + i * 0.05) * constants.RY for i in range(0, 5)], axes[0], axes[1]
+        energies = [-(0.9 + i * 0.05) * constants.RY for i in range(0, 5)]
+        analytic_solution, numeric_solutions = self._solve(
+            energies=energies, r_grid=r_grid
         )
-        self._plot_analytic_solution(r_grid, axes[0], axes[1])
-        for ax in axes:
+        self._plot(analytic_solution, numeric_solutions)
+        self._close_output_files()
+
+    def _solve(self, energies, r_grid):
+        numeric_solutions = self._get_numeric_solutions(r_grid, 0, energies)
+        analytic_solution = self._get_analytic_solution(r_grid)
+        return analytic_solution, numeric_solutions
+
+    def _plot(self, analytic_solution, numeric_solutions):
+        fig, (wave_ax, uwave_ax) = plt.subplots(1, 2, figsize=(12, 6))
+        for numeric_solution in numeric_solutions:
+            wave_ax.plot(
+                numeric_solution.r_grid,
+                numeric_solution.wave_function,
+                label=f"$E$ = {numeric_solution.energy / constants.RY:6.2f}",
+            )
+            uwave_ax.plot(
+                numeric_solution.r_grid,
+                numeric_solution.uwave_function,
+                label=f"$E$ = {numeric_solution.energy / constants.RY:6.2f}",
+            )
+        uwave_ax.plot(
+            analytic_solution.r_grid,
+            analytic_solution.uwave_function,
+            "--",
+            c="black",
+            label=f"Analytic",
+        )
+        wave_ax.plot(
+            analytic_solution.r_grid,
+            analytic_solution.wave_function,
+            "--",
+            c="black",
+            label=f"Analytic",
+        )
+        for ax in (wave_ax, uwave_ax):
             ax.legend()
             ax.set_xlabel(f"$r$ [fm]")
             ax.set_ylabel(f"$u$")
-            ax.set_xlim(0.0, r_grid[-1])
+            ax.set_xlim(0.0, analytic_solution.r_grid[-1])
             ax.legend()
             ax.grid(True)
         self.plot_file.savefig()
@@ -91,29 +121,25 @@ class PointNucleus(Task):
     def _get_r_grid(self, rmin, rmax, n_grid_points):
         return np.linspace(rmin, rmax, num=n_grid_points, endpoint=True)
 
-    def _plot_numerov_solutions(
-        self, r_grid, angular_momenta, energies, wave_ax, uwave_ax
-    ):
+    def _get_numeric_solutions(self, r_grid, angular_momenta, energies):
+        solutions = []
         for energy in energies:
             self._log(f"E={energy / constants.RY} Ry")
-            uwave_function, wave_function = numerov.numerov_wf(
-                energy,
-                angular_momenta,
-                potentials.get_coulomb_potential(
-                    constants.Z * constants.HBARC * constants.ALPHA_FS
-                ),
-                r_grid,
-                mass_a=constants.N_NUCL,
-                mass_b=constants.M_PION,
+            solutions.append(
+                numerov.numerov_wf(
+                    energy,
+                    angular_momenta,
+                    potentials.get_coulomb_potential(
+                        constants.Z * constants.HBARC * constants.ALPHA_FS
+                    ),
+                    r_grid,
+                    mass_a=constants.N_NUCL,
+                    mass_b=constants.M_PION,
+                )
             )
-            wave_ax.plot(
-                r_grid, wave_function, label=f"$E$ = {energy / constants.RY:6.2f}"
-            )
-            uwave_ax.plot(
-                r_grid, uwave_function, label=f"$E$ = {energy / constants.RY:6.2f}"
-            )
+        return solutions
 
-    def _plot_analytic_solution(self, r_grid, wave_ax, uwave_ax):
+    def _get_analytic_solution(self, r_grid):
         uwave_exact = (
             lambda r: (constants.Z / constants.A_BHOR) ** (3 / 2)
             * 2
@@ -122,23 +148,23 @@ class PointNucleus(Task):
         )
         wave_exact = (
             lambda r: (constants.Z / constants.A_BHOR) ** (3 / 2)
-                      * 2
-                      * np.exp(-constants.Z * r / constants.A_BHOR)
-                      * r
+            * 2
+            * np.exp(-constants.Z * r / constants.A_BHOR)
+            * r
         )
-        uwave_ax.plot(
-            r_grid,
-            numerov.normalize(np.array([uwave_exact(r) for r in r_grid]), r_grid),
-            "--",
-            c="black",
-            label=f"Analytic",
-        )
-        wave_ax.plot(
-            r_grid,
-            numerov.normalize(np.array([uwave_exact(r) for r in r_grid]), r_grid),
-            "--",
-            c="black",
-            label=f"Analytic",
+        return solution.Solution(
+            energy=0.0,
+            angular_momentum=0,
+            wave_function=solution.normalize(
+                solution.add_spherical_harmonic(
+                    np.array([wave_exact(r) for r in r_grid]), l=0, m=0
+                ),
+                r_grid,
+            ),
+            uwave_function=solution.normalize(
+                np.array([uwave_exact(r) for r in r_grid]), r_grid
+            ),
+            r_grid=r_grid,
         )
 
 
