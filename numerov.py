@@ -2,6 +2,7 @@ import numpy as np
 import constants
 import solution
 import logging
+import scipy.stats
 
 logging.getLogger().setLevel(logging.INFO)
 
@@ -34,7 +35,9 @@ def numerov_wf(
     return solution.Solution(
         uwave_function=solution.normalize(u_wave_function, r_grid),
         wave_function=solution.normalize(
-            solution.add_spherical_harmonic(wave_function_no_sph, l_level=l_level, m_level=0),
+            solution.add_spherical_harmonic(
+                wave_function_no_sph, l_level=l_level, m_level=0
+            ),
             r_grid,
         ),
         l_level=l_level,
@@ -51,17 +54,17 @@ def find_bound_state(
     r_grid,
     mass_a,
     mass_b,
-    angular_momentum,
+    l_level,
     min_energy,
     max_energy,
     exit_param=1e-6,
     max_iterations=int(100),
 ):
     max_energy_solution = numerov_wf(
-        max_energy, angular_momentum, potential, r_grid, mass_a, mass_b,
+        max_energy, l_level, potential, r_grid, mass_a, mass_b,
     )
     min_energy_solution = numerov_wf(
-        min_energy, angular_momentum, potential, r_grid, mass_a, mass_b,
+        min_energy, l_level, potential, r_grid, mass_a, mass_b,
     )
     solution = min(
         min_energy_solution, max_energy_solution, key=lambda s: s.abs_at_infinity
@@ -80,16 +83,21 @@ def find_bound_state(
 
         average_energy = (max_energy + min_energy) / 2
         average_energy_solution = numerov_wf(
-            average_energy, angular_momentum, potential, r_grid, mass_a, mass_b,
+            average_energy, l_level, potential, r_grid, mass_a, mass_b,
         )
         previous_energy = solution.energy
         solution = average_energy_solution
+
         if max_energy_solution.abs_at_infinity < min_energy_solution.abs_at_infinity:
-            min_energy = average_energy
-            min_energy_solution = average_energy_solution
+            min_energy = (min_energy + average_energy) / 2
+            min_energy_solution = numerov_wf(
+                min_energy, l_level, potential, r_grid, mass_a, mass_b,
+            )
         else:
-            max_energy = average_energy
-            max_energy_solution = average_energy_solution
+            max_energy = (max_energy + average_energy) / 2
+            max_energy_solution = numerov_wf(
+                max_energy, l_level, potential, r_grid, mass_a, mass_b,
+            )
 
     return solution
 

@@ -299,7 +299,7 @@ class PointNucleusFindBoundState(Task):
                 mass_b=constants.M_PION,
                 min_energy=self.energy_min,
                 max_energy=self.energy_max,
-                angular_momentum=self.angular_momenta,
+                l_level=self.angular_momenta,
                 potential=potential,
                 r_grid=r_grid,
             )
@@ -347,7 +347,7 @@ class PointNucleusEnergyLevelsFindBoundState(Task):
                     mass_b=constants.M_PION,
                     min_energy=energy_min,
                     max_energy=energy_max,
-                    angular_momentum=l,
+                    l_level=l,
                     potential=potential,
                     r_grid=r_grid,
                 )
@@ -373,7 +373,7 @@ class PointNucleusEnergyLevelsFindBoundState(Task):
                 )
         self._log(
             "\n\n" + tabulate.tabulate(
-                table_rows,
+                sorted(table_rows, key=lambda row: (row[0], row[1])),
                 headers=["n", "l", "E", "E/Ry", "r", "r/a_B", "u(r_max)", "error"],
                 tablefmt="fancy_grid",
             )
