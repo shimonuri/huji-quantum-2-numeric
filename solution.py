@@ -45,9 +45,9 @@ def add_spherical_harmonic(wave_function_no_sph, l_level, m_level):
     return wave_function_no_sph * scipy.special.sph_harm(l_level, m_level, 0, 0).real
 
 
-def normalize(wave_function, r_grid):
+def get_norm(wave_function, r_grid):
     norm = np.sqrt(np.trapz(y=np.square(np.abs(wave_function)), x=r_grid))
-    if norm > 0:
-        return wave_function / norm
+    if norm == 0:
+        raise ValueError("Norm is zero")
 
-    return wave_function
+    return norm

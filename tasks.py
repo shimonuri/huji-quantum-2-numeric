@@ -11,6 +11,7 @@ import constants
 import potentials
 import numerov
 import solution
+import scipy.special
 
 
 def energy_shift_perutrbation(r_grid, u):
@@ -19,19 +20,6 @@ def energy_shift_perutrbation(r_grid, u):
     ##  COMPLETE  ##
 
     return e_shift
-
-
-def FindBoundState(potential, l, Emin, Emax, r_grid):
-    # locate the exact binding energy in the range (Emin,Emax)
-    # return:
-    #         E - energy,
-    #         u[0:len(r_grid)] - wave function
-
-    ## COMPLETE ##
-    ## COMPLETE ##
-    ## COMPLETE ##
-
-    return (E, u)
 
 
 class Task:
@@ -152,31 +140,22 @@ class PointNucleus(Task):
 
     def _get_analytic_solution(self, r_grid):
         uwave_exact = (
-            lambda r: (constants.Z / constants.A_BHOR) ** (3 / 2)
-            * 2
-            * np.exp(-constants.Z * r / constants.A_BHOR)
+            lambda r: (2 / (constants.A_BHOR ** (3 / 2)))
+            * np.exp(-r / constants.A_BHOR)
             * r
         )
-        wave_exact = (
-            lambda r: (constants.Z / constants.A_BHOR) ** (3 / 2)
-            * 2
-            * np.exp(-constants.Z * r / constants.A_BHOR)
-            * r
+        wave_exact = lambda r: (uwave_exact(r)) / r
+        wave_function = solution.add_spherical_harmonic(
+            np.array([wave_exact(r) for r in r_grid]), l_level=0, m_level=0
         )
+        norm = solution.get_norm(wave_function, r_grid,)
         return solution.Solution(
             energy=0.0,
             n_level=1,
             l_level=0,
             m_level=0,
-            wave_function=solution.normalize(
-                solution.add_spherical_harmonic(
-                    np.array([wave_exact(r) for r in r_grid]), l_level=0, m_level=0
-                ),
-                r_grid,
-            ),
-            uwave_function=solution.normalize(
-                np.array([uwave_exact(r) for r in r_grid]), r_grid
-            ),
+            wave_function=(1 / norm) * wave_function,
+            uwave_function=(1 / norm) * np.array([uwave_exact(r) for r in r_grid]),
             r_grid=r_grid,
             steps=len(r_grid),
         )
@@ -374,9 +353,19 @@ class PointNucleusEnergyLevelsFindBoundState(Task):
                     f"  |1-E/(-Ry/n_level^2)| = {solution.error:.3E}"
                 )
         self._log(
-            "\n\n" + tabulate.tabulate(
+            "\n\n"
+            + tabulate.tabulate(
                 sorted(table_rows, key=lambda row: (row[0], row[1])),
-                headers=["n_level", "l", "E", "E/Ry", "r", "r/a_B", "u(r_max)", "error"],
+                headers=[
+                    "n_level",
+                    "l_level",
+                    "E",
+                    "E/Ry",
+                    "r",
+                    "r/a_B",
+                    "u(r_max)",
+                    "error",
+                ],
                 tablefmt="fancy_grid",
             )
         )

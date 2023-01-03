@@ -30,14 +30,13 @@ def numerov_wf(
     for i in range(len(u_wave_function)):
         wave_function_no_sph[i] = u_wave_function[i] / r_grid[i]
 
+    wave_function = solution.add_spherical_harmonic(
+        wave_function_no_sph, l_level=l_level, m_level=0
+    )
+    norm = solution.get_norm(wave_function, r_grid)
     return solution.Solution(
-        uwave_function=solution.normalize(u_wave_function, r_grid),
-        wave_function=solution.normalize(
-            solution.add_spherical_harmonic(
-                wave_function_no_sph, l_level=l_level, m_level=0
-            ),
-            r_grid,
-        ),
+        uwave_function=(1 / norm) * u_wave_function,
+        wave_function=(1 / norm) * wave_function_no_sph,
         n_level=n_level,
         l_level=l_level,
         m_level=0,
@@ -137,4 +136,5 @@ def _get_newton_solution(
 def numerov_kgwf(E, l, potential, r_grid):
     work = np.zeros(len(r_grid))
     wave_function = np.zeros(len(r_grid))
-    return solution.normalize(wave_function, r_grid)
+    norm = solution.get_norm(wave_function, r_grid)
+    return (1 / norm) * wave_function
