@@ -5,7 +5,7 @@ import numpy as np
 
 def main():
     _print_hello_message()
-    for task in _get_tasks(["Task 3"]):
+    for task in _get_tasks(["Task 2", "Task 3"]):
         task.run("output")
 
 
@@ -24,7 +24,7 @@ def _get_tasks(todos):
             energy_max=-0.8 * constants.RY,
             rmin=1e-15 * constants.A_BHOR,
             max_radii=np.array([5, 10, 15, 20]) * constants.A_BHOR,
-            angular_momenta=0,
+            l_level=0,
             numbers_of_steps=[10 ** k for k in range(2, 6)],
         ),
         tasks.PointNucleusEnergyLevelsFindBoundState(

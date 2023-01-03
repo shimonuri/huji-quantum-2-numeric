@@ -189,7 +189,7 @@ class PointNucleusFindBoundState(Task):
         max_radii,
         energy_min,
         energy_max,
-        angular_momenta,
+        l_level,
         numbers_of_steps,
         **kwargs,
     ):
@@ -200,7 +200,7 @@ class PointNucleusFindBoundState(Task):
         self.max_radii = max_radii
         self.energy_min = energy_min
         self.energy_max = energy_max
-        self.angular_momenta = angular_momenta
+        self.l_level = l_level
         self.numbers_of_steps = numbers_of_steps
 
     def run(self, output_dir):
@@ -300,8 +300,8 @@ class PointNucleusFindBoundState(Task):
                 mass_b=constants.M_PION,
                 min_energy=self.energy_min,
                 max_energy=self.energy_max,
-                n_level=0,
-                l_level=self.angular_momenta,
+                n_level=1,
+                l_level=self.l_level,
                 potential=potential,
                 r_grid=r_grid,
             )
