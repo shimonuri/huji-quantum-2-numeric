@@ -333,31 +333,30 @@ class PointNucleusEnergyLevelsFindBoundState(Task):
         )
 
         table_rows = []
-        for l in self.l_levels:
-            n_level_to_energy = [
-                -0.8 * constants.RY / (n ** 2) if n > 0 else -1.1 * constants.RY
-                for n in range(0, self.n_max + 1)
-            ]
-
-            for n in range(1, self.n_max - l + 1):
-                energy_min = n_level_to_energy[n - 1]
-                energy_max = n_level_to_energy[n]
-                r_max = (n + l) * 20 * constants.A_BHOR
+        n_level_to_energy = [
+            -0.8 * constants.RY / (n ** 2) if n > 0 else -1.1 * constants.RY
+            for n in range(0, self.n_max + 1)
+        ]
+        for n_level in range(1, self.n_max + 1):
+            for l_level in range(0, n_level):
+                max_energy = n_level_to_energy[n_level - 1]
+                min_energy = n_level_to_energy[n_level]
+                r_max = (n_level + l_level) * 20 * constants.A_BHOR
                 r_grid = np.linspace(self.rmin, r_max, num=self.ngrid, endpoint=True)
                 solution = numerov.find_bound_state(
                     mass_a=constants.N_NUCL,
                     mass_b=constants.M_PION,
-                    min_energy=energy_min,
-                    max_energy=energy_max,
-                    n_level=n,
-                    l_level=l,
+                    min_energy=max_energy,
+                    max_energy=min_energy,
+                    n_level=n_level,
+                    l_level=l_level,
                     potential=potential,
                     r_grid=r_grid,
                 )
                 table_rows.append(
                     [
-                        n,
-                        l,
+                        n_level,
+                        l_level,
                         solution.energy,
                         solution.energy / constants.RY,
                         solution.rms_radius,
@@ -367,17 +366,17 @@ class PointNucleusEnergyLevelsFindBoundState(Task):
                     ]
                 )
                 self._log(
-                    f"  n={n:2d} l={l:2d}   E [MeV] = {solution.energy:.4E}  "
+                    f"  n_level={n_level:2d} l={l_level:2d}   E [MeV] = {solution.energy:.4E}  "
                     f"E normalized [MeV] = {solution.energy / constants.RY:.4E}"
                     f"  radius [fm] = {solution.rms_radius:7.3f}"
                     + f"  radius [a_B] = {solution.rms_radius / constants.A_BHOR:7.4f}   "
                     f"u(r_max) = {solution.at_infinity:9.2E}"
-                    f"  |1-E/(-Ry/n^2)| = {solution.error:.3E}"
+                    f"  |1-E/(-Ry/n_level^2)| = {solution.error:.3E}"
                 )
         self._log(
             "\n\n" + tabulate.tabulate(
                 sorted(table_rows, key=lambda row: (row[0], row[1])),
-                headers=["n", "l", "E", "E/Ry", "r", "r/a_B", "u(r_max)", "error"],
+                headers=["n_level", "l", "E", "E/Ry", "r", "r/a_B", "u(r_max)", "error"],
                 tablefmt="fancy_grid",
             )
         )

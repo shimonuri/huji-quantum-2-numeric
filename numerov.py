@@ -11,11 +11,9 @@ def numerov_wf(
     energy, n_level, l_level, potential, r_grid, mass_a, mass_b,
 ):
     reduced_mass = mass_a * mass_b / (mass_a + mass_b)
-    inhomogeneous = (
-        lambda r: ((2 * reduced_mass) / (constants.HBARC ** 2))
-        * (energy - potential(r))
-        - l_level * (l_level + 1) / r ** 2
-    )
+    inhomogeneous = lambda r: ((2 * reduced_mass) / (constants.HBARC ** 2)) * (
+        energy - potential(r)
+    ) - (l_level * (l_level + 1)) / (r ** 2)
     r_diff = r_grid[1] - r_grid[0]
     u_wave_function = np.zeros(len(r_grid))
     u_wave_function[0] = 0
@@ -61,6 +59,9 @@ def find_bound_state(
     exit_param=1e-6,
     max_iterations=int(100),
 ):
+    if l_level > n_level - 1:
+        raise ValueError("l_level must be less than n_level - 1")
+
     max_energy_solution = numerov_wf(
         max_energy, n_level, l_level, potential, r_grid, mass_a, mass_b,
     )
