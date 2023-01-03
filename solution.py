@@ -3,13 +3,15 @@ import numpy as np
 import scipy.special
 
 import constants
+import logging
 
 
 @dataclasses.dataclass
 class Solution:
     wave_function: np.ndarray
     uwave_function: np.ndarray
-    angular_momentum: int
+    l_level: int
+    m_level: int
     energy: float
     r_grid: np.ndarray
     steps: int
@@ -24,14 +26,23 @@ class Solution:
         return np.abs(1 - self.energy / (-constants.RY / (self.level ** 2)))
 
     @property
+    def abs_at_infinity(self):
+        return abs(self.uwave_function[-1])
+
+    @property
     def at_infinity(self):
-        return abs(self.wave_function[-1])
+        return self.uwave_function[-1]
+
+    @property
+    def rms_radius(self):
+        return np.sqrt(
+            np.sum(self.r_grid ** 2 * self.uwave_function ** 2)
+            / np.sum(self.uwave_function ** 2)
+        )
 
 
-def add_spherical_harmonic(wave_function_no_sph, l, m):
-    if l == 0:
-        return wave_function_no_sph * scipy.special.sph_harm(0, 0, 0, 0).real
-    raise NotImplementedError("l != 0 not implemented")
+def add_spherical_harmonic(wave_function_no_sph, l_level, m_level):
+    return wave_function_no_sph * scipy.special.sph_harm(l_level, m_level, 0, 0).real
 
 
 def normalize(wave_function, r_grid):

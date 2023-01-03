@@ -1,5 +1,6 @@
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
+import tabulate
 from scipy.optimize import curve_fit, brentq
 from scipy.integrate import simps
 from math import pi
@@ -56,7 +57,7 @@ class Task:
             raise RuntimeError("log_file is already initialized")
 
         self.plot_file = PdfPages(output_dir / f"{self.name}.pdf")
-        self.log_file = (output_dir / f"{self.name}.log").open("wt")
+        self.log_file = (output_dir / f"{self.name}.log").open("wt", encoding="utf-8")
 
     def _close_output_files(self):
         self.plot_file.close()
@@ -163,10 +164,11 @@ class PointNucleus(Task):
         )
         return solution.Solution(
             energy=0.0,
-            angular_momentum=0,
+            l_level=0,
+            m_level=0,
             wave_function=solution.normalize(
                 solution.add_spherical_harmonic(
-                    np.array([wave_exact(r) for r in r_grid]), l=0, m=0
+                    np.array([wave_exact(r) for r in r_grid]), l_level=0, m_level=0
                 ),
                 r_grid,
             ),
@@ -262,7 +264,6 @@ class PointNucleusFindBoundState(Task):
     def _plot_max_radius_to_error(
         self, steps_and_max_radius_to_bound_state, numbers_of_steps, max_radii
     ):
-        max_radius = max(max_radii)
         bounded_states = self._get_bounded_states_by_number_of_steps(
             max(numbers_of_steps), max_radii, steps_and_max_radius_to_bound_state
         )
@@ -313,58 +314,72 @@ class PointNucleusFindBoundState(Task):
         return steps_and_max_radius_to_bound_state
 
 
-class Task3(Task):
+class PointNucleusEnergyLevelsFindBoundState(Task):
+    def __init__(self, n_max, l_levels, ngrid, rmin, **kwargs):
+        super().__init__(**kwargs)
+        self.n_max = n_max
+        self.l_levels = l_levels
+        self.ngrid = ngrid
+        self.rmin = rmin
+
     def run(self, output_dir):
         self._open_output_files(pathlib.Path(output_dir))
         self._log(f"Start")
 
-        potential = potentials.get_coulomb_potential
+        potential = potentials.get_coulomb_potential(
+            constants.Z * constants.HBARC * constants.ALPHA_FS
+        )
 
-        nmax = 4
-        lmax = 2
-        ngrid = 20000
-        # n = radial excitation
-        # l = orbital mometum
-        for l in range(0, lmax + 1):
-            Esteps = np.zeros(nmax - l + 1)
+        table_rows = []
+        for l in self.l_levels:
+            n_level_to_energy = [
+                -0.8 * constants.RY / (n ** 2) if n > 0 else -1.1 * constants.RY
+                for n in range(0, self.n_max + 1)
+            ]
 
-            ## COMPLETE ##
-
-            ## define Esteps that bracket the energy roots
-
-            ## COMPLETE ##
-
-            for n in range(1, nmax - l + 1):
-                Emin = Esteps[n - 1]
-                Emax = Esteps[n]
-                rmin = 0
-                rmax = (n + l) * 20 * constants.A_BHOR
-                r_grid = np.linspace(rmin, rmax, num=ngrid, endpoint=True)
-
-                ## COMPLETE ##
-                Ep = 0.0
-                wf = 0 * r_grid
-                ## Ep, wf = FindBoundState(...) ##
-
-                ## COMPLETE ##
-
-                radius = self._get_rms_radius(r_grid, wf)
-                umax = wf[-1]
-                Error = np.abs(1 - Ep / (-constants.RY / (n + l) ** 2))
-                self._log(
-                    f"  n={n:2d} l={l:2d}   E [MeV] = {Ep:.4E}  radius [fm] = {radius:7.3f}"
-                    + f"  radius [a_B] = {radius / constants.A_BHOR:7.4f}   u(rmax) = {umax:9.2E}   |1-E/(-Ry/n^2)| = {Error:.3E}"
+            for n in range(1, self.n_max - l + 1):
+                energy_min = n_level_to_energy[n - 1]
+                energy_max = n_level_to_energy[n]
+                r_max = (n + l) * 20 * constants.A_BHOR
+                r_grid = np.linspace(self.rmin, r_max, num=self.ngrid, endpoint=True)
+                solution = numerov.find_bound_state(
+                    mass_a=constants.N_NUCL,
+                    mass_b=constants.M_PION,
+                    min_energy=energy_min,
+                    max_energy=energy_max,
+                    angular_momentum=l,
+                    potential=potential,
+                    r_grid=r_grid,
                 )
+                table_rows.append(
+                    [
+                        n,
+                        l,
+                        solution.energy,
+                        solution.energy / constants.RY,
+                        solution.rms_radius,
+                        solution.rms_radius / constants.A_BHOR,
+                        solution.at_infinity,
+                        solution.error,
+                    ]
+                )
+                self._log(
+                    f"  n={n:2d} l={l:2d}   E [MeV] = {solution.energy:.4E}  "
+                    f"E normalized [MeV] = {solution.energy / constants.RY:.4E}"
+                    f"  radius [fm] = {solution.rms_radius:7.3f}"
+                    + f"  radius [a_B] = {solution.rms_radius / constants.A_BHOR:7.4f}   "
+                    f"u(r_max) = {solution.at_infinity:9.2E}"
+                    f"  |1-E/(-Ry/n^2)| = {solution.error:.3E}"
+                )
+        self._log(
+            "\n\n" + tabulate.tabulate(
+                table_rows,
+                headers=["n", "l", "E", "E/Ry", "r", "r/a_B", "u(r_max)", "error"],
+                tablefmt="fancy_grid",
+            )
+        )
 
         self._close_output_files()
-
-    @staticmethod
-    def _get_rms_radius(self, r_grid, u):
-        ## COMPLETE ##
-        radius = 0.0
-        ## COMPLETE ##
-
-        return radius
 
 
 class Task4(Task):

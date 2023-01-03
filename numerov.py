@@ -2,21 +2,23 @@ import numpy as np
 import constants
 import solution
 import logging
+
 logging.getLogger().setLevel(logging.INFO)
 
+
 def numerov_wf(
-    energy, angular_momentum, potential, r_grid, mass_a, mass_b,
+    energy, l_level, potential, r_grid, mass_a, mass_b,
 ):
     reduced_mass = mass_a * mass_b / (mass_a + mass_b)
     inhomogeneous = (
         lambda r: ((2 * reduced_mass) / (constants.HBARC ** 2))
         * (energy - potential(r))
-        - angular_momentum * (angular_momentum + 1) / r ** 2
+        - l_level * (l_level + 1) / r ** 2
     )
     r_diff = r_grid[1] - r_grid[0]
     u_wave_function = np.zeros(len(r_grid))
     u_wave_function[0] = 0
-    u_wave_function[1] = r_diff ** (angular_momentum + 1)
+    u_wave_function[1] = r_diff ** (l_level + 1)
 
     for i in range(1, len(r_grid) - 1):
         u_wave_function[i + 1] = (
@@ -32,12 +34,11 @@ def numerov_wf(
     return solution.Solution(
         uwave_function=solution.normalize(u_wave_function, r_grid),
         wave_function=solution.normalize(
-            solution.add_spherical_harmonic(
-                wave_function_no_sph, l=angular_momentum, m=0
-            ),
+            solution.add_spherical_harmonic(wave_function_no_sph, l_level=l_level, m_level=0),
             r_grid,
         ),
-        angular_momentum=angular_momentum,
+        l_level=l_level,
+        m_level=0,
         energy=energy,
         r_grid=r_grid,
         steps=len(r_grid),
@@ -63,7 +64,7 @@ def find_bound_state(
         min_energy, angular_momentum, potential, r_grid, mass_a, mass_b,
     )
     solution = min(
-        min_energy_solution, max_energy_solution, key=lambda s: s.at_infinity
+        min_energy_solution, max_energy_solution, key=lambda s: s.abs_at_infinity
     )
     previous_energy = np.inf
     i = 0
@@ -71,7 +72,7 @@ def find_bound_state(
         i += 1
         if i % 100 == 0:
             logging.info(
-                f"iteration {i}, at_infinity {solution.at_infinity}, energy {solution.energy}"
+                f"iteration {i}, at_infinity {solution.abs_at_infinity}, energy {solution.energy}"
             )
         if i > max_iterations:
             logging.warning("Max iterations reached")
@@ -83,7 +84,7 @@ def find_bound_state(
         )
         previous_energy = solution.energy
         solution = average_energy_solution
-        if max_energy_solution.at_infinity < min_energy_solution.at_infinity:
+        if max_energy_solution.abs_at_infinity < min_energy_solution.abs_at_infinity:
             min_energy = average_energy
             min_energy_solution = average_energy_solution
         else:

@@ -5,11 +5,11 @@ import numpy as np
 
 def main():
     _print_hello_message()
-    for task in _get_tasks([]):
+    for task in _get_tasks(["Task 3"]):
         task.run("output")
 
 
-def _get_tasks(todo):
+def _get_tasks(todos):
     tasks_to_do = [
         tasks.PointNucleus(
             name="PointNucleus (Task 1)",
@@ -27,11 +27,17 @@ def _get_tasks(todo):
             angular_momenta=0,
             numbers_of_steps=[10 ** k for k in range(2, 6)],
         ),
-        tasks.Task3("Task 3"),
+        tasks.PointNucleusEnergyLevelsFindBoundState(
+            name="PointNucleusEnergyLevelsFindBoundState (Task 3)",
+            n_max=4,
+            l_levels=range(0, 2 + 1),
+            ngrid=20000,
+            rmin=1e-15 * constants.A_BHOR,
+        ),
         tasks.Task4("Task 4"),
         tasks.Task5("Task 5"),
     ]
-    return [task for task in tasks_to_do if task.name in todo]
+    return [task for task in tasks_to_do if any(todo in task.name for todo in todos)]
 
 
 def _print_hello_message():
