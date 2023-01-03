@@ -131,14 +131,15 @@ class PointNucleus(Task):
     def _get_r_grid(self, rmin, rmax, n_grid_points):
         return np.linspace(rmin, rmax, num=n_grid_points, endpoint=True)
 
-    def _get_numeric_solutions(self, r_grid, angular_momenta, energies):
+    def _get_numeric_solutions(self, r_grid, l_level, energies):
         solutions = []
         for energy in energies:
             self._log(f"E={energy / constants.RY} Ry")
             solutions.append(
                 numerov.numerov_wf(
                     energy,
-                    angular_momenta,
+                    1,
+                    l_level,
                     potentials.get_coulomb_potential(
                         constants.Z * constants.HBARC * constants.ALPHA_FS
                     ),
@@ -164,6 +165,7 @@ class PointNucleus(Task):
         )
         return solution.Solution(
             energy=0.0,
+            n_level=1,
             l_level=0,
             m_level=0,
             wave_function=solution.normalize(
@@ -177,7 +179,6 @@ class PointNucleus(Task):
             ),
             r_grid=r_grid,
             steps=len(r_grid),
-            level=1,
         )
 
 
@@ -299,6 +300,7 @@ class PointNucleusFindBoundState(Task):
                 mass_b=constants.M_PION,
                 min_energy=self.energy_min,
                 max_energy=self.energy_max,
+                n_level=0,
                 l_level=self.angular_momenta,
                 potential=potential,
                 r_grid=r_grid,
@@ -347,6 +349,7 @@ class PointNucleusEnergyLevelsFindBoundState(Task):
                     mass_b=constants.M_PION,
                     min_energy=energy_min,
                     max_energy=energy_max,
+                    n_level=n,
                     l_level=l,
                     potential=potential,
                     r_grid=r_grid,

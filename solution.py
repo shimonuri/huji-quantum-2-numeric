@@ -15,7 +15,7 @@ class Solution:
     energy: float
     r_grid: np.ndarray
     steps: int
-    level: int
+    n_level: int
 
     @property
     def r_max(self):
@@ -23,7 +23,7 @@ class Solution:
 
     @property
     def error(self):
-        return np.abs(1 - self.energy / (-constants.RY / (self.level ** 2)))
+        return np.abs(1 - self.energy / (-constants.RY / (self.n_level ** 2)))
 
     @property
     def abs_at_infinity(self):
