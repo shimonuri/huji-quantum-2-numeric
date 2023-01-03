@@ -5,12 +5,12 @@ import numpy as np
 
 def main():
     _print_hello_message()
-    for task in _get_tasks():
+    for task in _get_tasks([]):
         task.run("output")
 
 
-def _get_tasks():
-    return [
+def _get_tasks(todo):
+    tasks_to_do = [
         tasks.PointNucleus(
             name="PointNucleus (Task 1)",
             rmin=1e-15 * constants.A_BHOR,
@@ -27,10 +27,11 @@ def _get_tasks():
             angular_momenta=0,
             numbers_of_steps=[10 ** k for k in range(2, 6)],
         ),
-        # tasks.Task3("Task 3"),
-        # tasks.Task4("Task 4"),
-        # tasks.Task5("Task 5"),
+        tasks.Task3("Task 3"),
+        tasks.Task4("Task 4"),
+        tasks.Task5("Task 5"),
     ]
+    return [task for task in tasks_to_do if task.name in todo]
 
 
 def _print_hello_message():

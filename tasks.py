@@ -119,10 +119,12 @@ class PointNucleus(Task):
         for ax in (wave_ax, uwave_ax):
             ax.legend()
             ax.set_xlabel(f"$r$ [fm]")
-            ax.set_ylabel(f"$u$")
             ax.set_xlim(0.0, analytic_solution.r_grid[-1])
             ax.legend()
             ax.grid(True)
+
+        wave_ax.set_ylabel(f"$\psi(r)$")
+        uwave_ax.set_ylabel(f"$u(r)$")
         self.plot_file.savefig()
 
     def _get_r_grid(self, rmin, rmax, n_grid_points):
