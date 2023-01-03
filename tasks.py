@@ -61,6 +61,7 @@ class Task:
     def _close_output_files(self):
         self.plot_file.close()
         self.log_file.close()
+        plt.clf()
 
 
 class PointNucleus(Task):
@@ -172,12 +173,20 @@ class PointNucleus(Task):
             ),
             r_grid=r_grid,
             steps=len(r_grid),
+            level=1,
         )
 
 
 class PointNucleusFindBoundState(Task):
     def __init__(
-        self, rmin, max_radii, energy_min, energy_max, energy_step, angular_momenta, **kwargs
+        self,
+        rmin,
+        max_radii,
+        energy_min,
+        energy_max,
+        angular_momenta,
+        numbers_of_steps,
+        **kwargs,
     ):
         super().__init__(**kwargs)
         if energy_min >= energy_max:
@@ -186,8 +195,8 @@ class PointNucleusFindBoundState(Task):
         self.max_radii = max_radii
         self.energy_min = energy_min
         self.energy_max = energy_max
-        self.energy_step = energy_step
         self.angular_momenta = angular_momenta
+        self.numbers_of_steps = numbers_of_steps
 
     def run(self, output_dir):
         self._open_output_files(pathlib.Path(output_dir))
@@ -197,23 +206,21 @@ class PointNucleusFindBoundState(Task):
             constants.Z * constants.HBARC * constants.ALPHA_FS
         )
 
-        numbers_of_steps = [10 ** k for k in range(2, 6)]
         steps_and_max_radius_to_bound_state = self._find_bounded_states(
             potential=potential,
             max_radii=self.max_radii,
-            numbers_of_steps=numbers_of_steps,
+            numbers_of_steps=self.numbers_of_steps,
         )
-        self._plot(steps_and_max_radius_to_bound_state, self.max_radii, numbers_of_steps)
+        self._plot(
+            steps_and_max_radius_to_bound_state, self.max_radii, self.numbers_of_steps
+        )
         self._close_output_files()
 
-    def _plot(
-        self, steps_and_max_radius_to_bound_state, max_radiuses, numbers_of_steps
-    ):
-        for max_radius in max_radiuses:
-            bounded_states = [
-                steps_and_max_radius_to_bound_state[(steps, max_radius)]
-                for steps in numbers_of_steps
-            ]
+    def _plot(self, steps_and_max_radius_to_bound_state, max_radii, numbers_of_steps):
+        for max_radius in max_radii:
+            bounded_states = self._get_bounded_states_by_radius(
+                max_radius, numbers_of_steps, steps_and_max_radius_to_bound_state
+            )
             plt.loglog(
                 [bounded_state.steps for bounded_state in bounded_states],
                 [bounded_state.error for bounded_state in bounded_states],
@@ -221,23 +228,57 @@ class PointNucleusFindBoundState(Task):
                 label=f"R={max_radius / constants.A_BHOR} $a_B$",
             )
         #
-        # plt.xlabel(f"$N$")
-        # plt.ylabel(f"$\eta$")
-        # plt.xlim(numbers_of_steps[0], numbers_of_steps[-1])
+        plt.xlabel(f"$N$")
+        plt.ylabel(f"$\eta$")
+        plt.xlim(min(numbers_of_steps), max(numbers_of_steps))
         # plt.ylim(1.0e-8, 0.1)
-        # plt.legend()
-        # plt.grid(True)
-        # self.plot_file.savefig()
-        # plt.close()
-        # # plot eta vs rmax
-        # plt.semilogy(
-        #     max_radiuses / constants.A_BHOR, Err_nr[-1, :], "-s", label=f"N=$10^5$"
-        # )
-        # plt.xlabel(f"$R [a_B]$")
-        # plt.ylabel(f"$\eta$")
-        # plt.xlim(0.0, max_radiuses[-1] / constants.A_BHOR)
-        # plt.legend()
-        # plt.grid(True)
+        plt.legend()
+        plt.grid(True)
+        self.plot_file.savefig()
+        plt.close()
+        # plot eta vs rmax
+        self._plot_max_radius_to_error(
+            steps_and_max_radius_to_bound_state, numbers_of_steps, max_radii
+        )
+
+    def _get_bounded_states_by_radius(
+        self, max_radius, numbers_of_steps, steps_and_max_radius_to_bound_state
+    ):
+        return [
+            steps_and_max_radius_to_bound_state[(steps, max_radius)]
+            for steps in numbers_of_steps
+        ]
+
+    def _get_bounded_states_by_number_of_steps(
+        self, number_of_steps, max_radii, steps_and_max_radius_to_bound_state
+    ):
+        return [
+            steps_and_max_radius_to_bound_state[(number_of_steps, max_radius)]
+            for max_radius in max_radii
+        ]
+
+    def _plot_max_radius_to_error(
+        self, steps_and_max_radius_to_bound_state, numbers_of_steps, max_radii
+    ):
+        max_radius = max(max_radii)
+        bounded_states = self._get_bounded_states_by_number_of_steps(
+            max(numbers_of_steps), max_radii, steps_and_max_radius_to_bound_state
+        )
+        plt.semilogy(
+            [
+                bounded_state.r_max / constants.A_BHOR
+                for bounded_state in bounded_states
+            ],
+            [bounded_state.error for bounded_state in bounded_states],
+            "-s",
+            label=f"N=$10^5$",
+        )
+
+        plt.xlabel(f"$R [a_B]$")
+        plt.ylabel(f"$\eta$")
+        plt.xlim(0.0, max(max_radii) / constants.A_BHOR)
+        plt.legend()
+        plt.grid(True)
         self.plot_file.savefig()
         plt.close()
 
@@ -246,14 +287,15 @@ class PointNucleusFindBoundState(Task):
         for max_radius, number_of_steps in itertools.product(
             max_radii, numbers_of_steps
         ):
-            r_grid = np.linspace(self.rmin, max_radius, num=number_of_steps, endpoint=True)
+            r_grid = np.linspace(
+                self.rmin, max_radius, num=number_of_steps, endpoint=True
+            )
 
             solution = numerov.find_bound_state(
                 mass_a=constants.N_NUCL,
                 mass_b=constants.M_PION,
-                energy_min=self.energy_min,
-                energy_max=self.energy_max,
-                energy_step=self.energy_step,
+                min_energy=self.energy_min,
+                max_energy=self.energy_max,
                 angular_momentum=self.angular_momenta,
                 potential=potential,
                 r_grid=r_grid,

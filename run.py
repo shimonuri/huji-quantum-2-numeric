@@ -2,6 +2,7 @@ import tasks
 import constants
 import numpy as np
 
+
 def main():
     _print_hello_message()
     for task in _get_tasks():
@@ -20,11 +21,11 @@ def _get_tasks():
         tasks.PointNucleusFindBoundState(
             name="PointNucleusFindBoundState (Task 2)",
             energy_min=-1.2 * constants.RY,
-            energy_max=-0.9 * constants.RY,
-            energy_step=0.05 * constants.RY,
+            energy_max=-0.8 * constants.RY,
             rmin=1e-15 * constants.A_BHOR,
             max_radii=np.array([5, 10, 15, 20]) * constants.A_BHOR,
-            angular_momenta=0
+            angular_momenta=0,
+            numbers_of_steps=[10 ** k for k in range(2, 6)],
         ),
         # tasks.Task3("Task 3"),
         # tasks.Task4("Task 4"),

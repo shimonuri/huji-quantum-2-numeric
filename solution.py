@@ -2,6 +2,8 @@ import dataclasses
 import numpy as np
 import scipy.special
 
+import constants
+
 
 @dataclasses.dataclass
 class Solution:
@@ -11,6 +13,7 @@ class Solution:
     energy: float
     r_grid: np.ndarray
     steps: int
+    level: int
 
     @property
     def r_max(self):
@@ -18,7 +21,11 @@ class Solution:
 
     @property
     def error(self):
-        return np.abs(self.wave_function[-1])
+        return np.abs(1 - self.energy / (-constants.RY / (self.level ** 2)))
+
+    @property
+    def at_infinity(self):
+        return abs(self.wave_function[-1])
 
 
 def add_spherical_harmonic(wave_function_no_sph, l, m):

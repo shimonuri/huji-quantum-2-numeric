@@ -1,7 +1,8 @@
 import numpy as np
 import constants
 import solution
-
+import logging
+logging.getLogger().setLevel(logging.INFO)
 
 def numerov_wf(
     energy, angular_momentum, potential, r_grid, mass_a, mass_b,
@@ -40,6 +41,7 @@ def numerov_wf(
         energy=energy,
         r_grid=r_grid,
         steps=len(r_grid),
+        level=1,
     )
 
 
@@ -49,17 +51,46 @@ def find_bound_state(
     mass_a,
     mass_b,
     angular_momentum,
-    energy_min,
-    energy_max,
-    energy_step,
+    min_energy,
+    max_energy,
+    exit_param=1e-6,
+    max_iterations=int(100),
 ):
-    energies = np.arange(energy_min, energy_max, energy_step)
-    solutions = []
-    for energy in energies:
-        solutions.append(
-            numerov_wf(energy, angular_momentum, potential, r_grid, mass_a, mass_b,)
+    max_energy_solution = numerov_wf(
+        max_energy, angular_momentum, potential, r_grid, mass_a, mass_b,
+    )
+    min_energy_solution = numerov_wf(
+        min_energy, angular_momentum, potential, r_grid, mass_a, mass_b,
+    )
+    solution = min(
+        min_energy_solution, max_energy_solution, key=lambda s: s.at_infinity
+    )
+    previous_energy = np.inf
+    i = 0
+    while abs(previous_energy - solution.energy) > exit_param:
+        i += 1
+        if i % 100 == 0:
+            logging.info(
+                f"iteration {i}, at_infinity {solution.at_infinity}, energy {solution.energy}"
+            )
+        if i > max_iterations:
+            logging.warning("Max iterations reached")
+            break
+
+        average_energy = (max_energy + min_energy) / 2
+        average_energy_solution = numerov_wf(
+            average_energy, angular_momentum, potential, r_grid, mass_a, mass_b,
         )
-    return min(solutions, key=lambda s: s.wave_function[-1])
+        previous_energy = solution.energy
+        solution = average_energy_solution
+        if max_energy_solution.at_infinity < min_energy_solution.at_infinity:
+            min_energy = average_energy
+            min_energy_solution = average_energy_solution
+        else:
+            max_energy = average_energy
+            max_energy_solution = average_energy_solution
+
+    return solution
 
 
 # Solution to the Klein-Gordon w.f.
