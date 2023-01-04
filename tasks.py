@@ -11,7 +11,7 @@ import constants
 import potentials
 import numerov
 import solution
-import scipy.special
+import scipy.constants
 
 
 def energy_shift_perutrbation(r_grid, u):
@@ -185,7 +185,6 @@ class PointNucleusFindBoundState(Task):
     def run(self, output_dir):
         self._open_output_files(pathlib.Path(output_dir))
         self._log(f"Start")
-        l = 0
         potential = potentials.get_coulomb_potential(
             constants.Z * constants.HBARC * constants.ALPHA_FS
         )
@@ -373,54 +372,77 @@ class PointNucleusEnergyLevelsFindBoundState(Task):
         self._close_output_files()
 
 
-class Task4(Task):
+class SmearedPotential(Task):
+    def __int__(self, max_n_level, max_l_level, ngrid):
+        self.max_n_level = max_n_level
+        self.max_l_level = max_l_level
+        self.ngrid = ngrid
+
     def run(self, output_dir):
         self._open_output_files(pathlib.Path(output_dir))
         self._log(f"Start")
 
-        potential_p = potentials.get_coulomb_potential
-        potential_s = potentials.SmearedCoulomb
+        point_potential = potentials.get_coulomb_potential(
+            constants.Z * constants.HBARC * constants.ALPHA_FS
+        )
+        smeared_potential = potentials.get_smeared_coulomb(
+            (constants.Z * scipy.constants.e) / (4 * np.pi * constants.R_NUCL ** 3 / 3)
+        )
 
-        nmax = 4
-        lmax = 2
-        ngrid = 40000
-        # n = radial excitation
-        # l = orbital mometum
+        # n_level = radial excitation
+        # l_level = orbital mometum
         self._log(f"\n Units MeV, fm")
-        for l in range(0, lmax + 1):
-            Esteps = np.zeros(nmax - l + 1)
-            ## COMPLETE ##
-
-            ## define Esteps that bracket the energy roots
-
-            ## COMPLETE ##
-
-            for n in range(1, nmax - l + 1):
-                Emin = Esteps[n - 1]
-                Emax = Esteps[n]
+        for l_level in range(0, self.max_l_level + 1):
+            n_level_to_energy = [
+                -0.8 * constants.RY / (n ** 2) if n > 0 else -1.1 * constants.RY
+                for n in range(0, self.max_n_level - l_level + 1)
+            ]
+            for n_level in range(1, self.max_n_level - l_level + 1):
+                max_energy = n_level_to_energy[n_level - 1]
+                min_energy = n_level_to_energy[n_level]
                 rmin = 0
-                rmax = (n + l) * 20 * constants.A_BHOR
-                r_grid = np.linspace(rmin, rmax, num=ngrid, endpoint=True)
+                rmax = (n_level + l_level) * 20 * constants.A_BHOR
+                r_grid = np.linspace(rmin, rmax, num=self.ngrid, endpoint=True)
 
                 ## COMPLETE ##
 
-                Ep = 1.0
-                Es = 2.0
                 dE_perturb = 0.0
-                wfp = 0 * r_grid
 
-                ## Ep, wfp = FindBoundState(potential_p,...) ##
+                point_solution = numerov.find_bound_state(
+                    potential=point_potential,
+                    r_grid=r_grid,
+                    mass_a=constants.M_PION,
+                    mass_b=constants.N_NUCL,
+                    n_level=n_level,
+                    l_level=l_level,
+                    min_energy=min_energy,
+                    max_energy=max_energy,
+                )
+                smeared_solution = numerov.find_bound_state(
+                    potential=smeared_potential,
+                    r_grid=r_grid,
+                    mass_a=constants.M_PION,
+                    mass_b=constants.N_NUCL,
+                    n_level=n_level,
+                    l_level=l_level,
+                    min_energy=min_energy,
+                    max_energy=max_energy,
+                )
                 ## dE_perturb = energy_shift_perutrbation(r_grid,wfp)
-                ## Es, wfs = FindBoundState(potential_s,...) ##
-
                 ## COMPLETE ##
 
-                umax = wfp[-1]
-                Error = np.abs(1 - dE_perturb / (Es - Ep))
+                umax = point_solution.at_infinity
+                Error = np.abs(
+                    1 - dE_perturb / (smeared_solution.energy - point_solution.energy)
+                )
                 self._log(
-                    f"  n={n:2d} l={l:2d}  Ep = {Ep:.6E}  Es = {Es:.6e}"
-                    + f"  dE_exct ={Es - Ep:9.2e}  dE_prtb ={dE_perturb:9.2e}"
-                    + f"  1-dE/E = {(Es - Ep) / Ep:.2e}  |1-dE_prtb/dE_exct| = {Error:.2e}"
+                    f"  n_level={n_level:2d} l_level={l_level:2d}  "
+                    f"Ep = {point_solution.energy:.6E}  Es = {Es:.6e}"
+                    + f"  dE_exct ={smeared_solution.energy - point_solution.energy:9.2e}  "
+                      f"dE_prtb ={dE_perturb:9.2e}"
+                    + f"  1-dE/E = "
+                      f"{(smeared_solution.energy - point_solution.energy) / point_solution.energy:.2e} "
+                      f" |1-dE_prtb/dE_exct| = {Error:.2e}"
                 )
 
         self._close_output_files()

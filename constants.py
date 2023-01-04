@@ -4,7 +4,6 @@ import scipy.constants
 # hbar*c, fine structure constant
 HBARC = 197.3269804  # MeV fm
 ALPHA_FS = scipy.constants.fine_structure
-
 # Nucleus
 A = 12
 Z = 6

@@ -34,7 +34,9 @@ def _get_tasks(todos):
             ngrid=20000,
             rmin=1e-15 * constants.A_BHOR,
         ),
-        tasks.Task4("Task 4"),
+        tasks.SmearedPotential(
+            name="SmearedPotential (Task 4)", max_n_level=4, max_l_level=2, ngrid=40000
+        ),
         tasks.Task5("Task 5"),
     ]
     return [task for task in tasks_to_do if any(todo in task.name for todo in todos)]

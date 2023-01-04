@@ -1,4 +1,5 @@
 import constants
+import numpy as np
 
 
 def get_coulomb_potential(const):
@@ -6,9 +7,5 @@ def get_coulomb_potential(const):
 
 
 # -----------------------------------------------------------------------------
-def SmearedCoulomb(r):
-    ##  COMPLETE  ##
-    vv = constants.DUMMY
-    ##  COMPLETE  ##
-
-    return vv
+def get_smeared_coulomb(density):
+    return lambda r: -((4 / 3) * np.pi * r ** 3) * density / r
