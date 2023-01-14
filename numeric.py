@@ -143,6 +143,8 @@ def numerov_kgwf(E, l, potential, r_grid):
     return (1 / norm) * wave_function
 
 
-def energy_shift_perturbation(r_grid, solution, perturbation_potential):
+def energy_shift_perturbation(r_grid, basic_solution, perturbation_potential):
     perturbation = np.array([perturbation_potential(r) for r in r_grid])
-    return np.trapz(y=perturbation * (solution.wave_function ** 2), x=r_grid)
+    return np.trapz(
+        y=perturbation * (basic_solution.uwave_function ** 2), x=r_grid
+    ) / solution.get_norm(basic_solution.uwave_function, r_grid)
