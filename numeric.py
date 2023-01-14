@@ -3,17 +3,41 @@ import constants
 import solution
 import logging
 import scipy.stats
+import enum
 
 logging.getLogger().setLevel(logging.INFO)
 
 
+class NumerovCase(enum.Enum):
+    RELATIVISTIC = 1
+    NON_RELATIVISTIC = 2
+
+
 def numerov_wf(
-    energy, n_level, l_level, potential, r_grid, mass_a, mass_b, should_find_wave=False
+    energy,
+    n_level,
+    l_level,
+    potential,
+    r_grid,
+    mass_a,
+    mass_b,
+    should_find_wave=False,
+    case=NumerovCase.NON_RELATIVISTIC,
 ):
     reduced_mass = mass_a * mass_b / (mass_a + mass_b)
-    inhomogeneous = lambda r: ((2 * reduced_mass) / (constants.HBARC ** 2)) * (
-        energy - potential(r)
-    ) - (l_level * (l_level + 1)) / (r ** 2)
+    if case == NumerovCase.NON_RELATIVISTIC:
+        inhomogeneous = lambda r: ((2 * reduced_mass) / (constants.HBARC ** 2)) * (
+            energy - potential(r)
+        ) - (l_level * (l_level + 1)) / (r ** 2)
+    elif case == NumerovCase.RELATIVISTIC:
+        inhomogeneous = lambda r: (1 / (constants.HBARC ** 2)) * (
+            energy - potential(r)
+        ) ** 2 + (
+            2 * mass_a * (energy - potential(r)) + (l_level * (l_level + 1)) / r ** 2
+        )
+    else:
+        raise ValueError("Unknown case")
+
     r_diff = r_grid[1] - r_grid[0]
     uwave_function = np.zeros(len(r_grid))
     uwave_function[0] = 0
@@ -66,15 +90,32 @@ def find_bound_state(
     exit_param=1e-15,
     max_iterations=int(50),
     should_find_wave=False,
+    numerov_case=NumerovCase.NON_RELATIVISTIC,
 ):
     if l_level > n_level - 1:
         raise ValueError("l_level must be less than n_level - 1")
 
     max_energy_solution = numerov_wf(
-        max_energy, n_level, l_level, potential, r_grid, mass_a, mass_b, should_find_wave
+        max_energy,
+        n_level,
+        l_level,
+        potential,
+        r_grid,
+        mass_a,
+        mass_b,
+        should_find_wave,
+        numerov_case,
     )
     min_energy_solution = numerov_wf(
-        min_energy, n_level, l_level, potential, r_grid, mass_a, mass_b, should_find_wave
+        min_energy,
+        n_level,
+        l_level,
+        potential,
+        r_grid,
+        mass_a,
+        mass_b,
+        should_find_wave,
+        numerov_case,
     )
     current_solution = min(
         min_energy_solution, max_energy_solution, key=lambda s: s.abs_at_infinity
@@ -107,6 +148,7 @@ def find_bound_state(
             potential,
             r_grid,
             should_find_wave,
+            numerov_case
         )
         previous_energy = current_solution.energy
         current_solution = newton_energy_solution
@@ -134,6 +176,7 @@ def _get_newton_solution(
     potential,
     r_grid,
     should_find_wave,
+    case,
 ):
     linear_curve = scipy.stats.linregress(
         x=[min_energy_solution.at_infinity, max_energy_solution.at_infinity],
@@ -141,17 +184,17 @@ def _get_newton_solution(
     )
     newton_energy = linear_curve.intercept
     newton_energy_solution = numerov_wf(
-        newton_energy, n_level, l_level, potential, r_grid, mass_a, mass_b, should_find_wave
+        newton_energy,
+        n_level,
+        l_level,
+        potential,
+        r_grid,
+        mass_a,
+        mass_b,
+        should_find_wave,
+        case,
     )
     return newton_energy_solution
-
-
-# Solution to the Klein-Gordon w.f.
-def numerov_kgwf(E, l, potential, r_grid):
-    work = np.zeros(len(r_grid))
-    wave_function = np.zeros(len(r_grid))
-    norm = solution.get_norm(wave_function, r_grid)
-    return (1 / norm) * wave_function
 
 
 def energy_shift_perturbation(r_grid, basic_solution, perturbation_potential):

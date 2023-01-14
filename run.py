@@ -40,7 +40,9 @@ def _get_tasks(todos):
         tasks.SmearedPotential(
             name="SmearedPotential (Task 4)", max_n_level=4, max_l_level=2, ngrid=40000
         ),
-        tasks.Task5("Task 5"),
+        tasks.Relativistic(
+            name="Relativistic (Task 5)", max_n_level=4, max_l_level=2, ngrid=200000
+        ),
     ]
     return [task for task in tasks_to_do if any(todo in task.name for todo in todos)]
 
