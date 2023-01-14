@@ -22,18 +22,19 @@ def numerov_wf(
     mass_a,
     mass_b,
     should_find_wave=False,
-    case=NumerovCase.NON_RELATIVISTIC,
+    numerov_case=NumerovCase.NON_RELATIVISTIC,
 ):
     reduced_mass = mass_a * mass_b / (mass_a + mass_b)
-    if case == NumerovCase.NON_RELATIVISTIC:
+    if numerov_case == NumerovCase.NON_RELATIVISTIC:
         inhomogeneous = lambda r: ((2 * reduced_mass) / (constants.HBARC ** 2)) * (
             energy - potential(r)
         ) - (l_level * (l_level + 1)) / (r ** 2)
-    elif case == NumerovCase.RELATIVISTIC:
+    elif numerov_case == NumerovCase.RELATIVISTIC:
         inhomogeneous = lambda r: (1 / (constants.HBARC ** 2)) * (
             energy - potential(r)
         ) ** 2 + (
-            2 * mass_a * (energy - potential(r)) + (l_level * (l_level + 1)) / r ** 2
+            2 * constants.M_RED * (energy - potential(r)) / (constants.HBARC ** 2)
+            + (l_level * (l_level + 1)) / r ** 2
         )
     else:
         raise ValueError("Unknown case")
@@ -122,6 +123,7 @@ def find_bound_state(
     )
     if np.sign(min_energy_solution.at_infinity * max_energy_solution.at_infinity) == 1:
         logging.warning("max_energy and min_energy has same sign at infinity")
+        import ipdb; ipdb.set_trace()
 
     previous_energy = np.inf
     i = 0
@@ -129,6 +131,9 @@ def find_bound_state(
         abs(current_solution.at_infinity) > exit_param
         and abs(max_energy_solution.energy - min_energy_solution.energy) > exit_param
     ):
+        # print(
+        #     f"current energy: {current_solution.energy / constants.RY}, at_infinity: {current_solution.at_infinity}"
+        # )
         i += 1
         if i % 100 == 0:
             logging.info(
@@ -148,7 +153,7 @@ def find_bound_state(
             potential,
             r_grid,
             should_find_wave,
-            numerov_case
+            numerov_case,
         )
         previous_energy = current_solution.energy
         current_solution = newton_energy_solution
