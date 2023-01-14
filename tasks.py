@@ -126,6 +126,8 @@ class PointNucleus(Task):
                     r_grid,
                     mass_a=constants.N_NUCL,
                     mass_b=constants.M_PION,
+                    should_find_wave=True,
+                    numerov_case=numeric.NumerovCase.NON_RELATIVISTIC,
                 )
             )
         return solutions
@@ -274,6 +276,7 @@ class PointNucleusFindBoundState(Task):
                 l_level=self.l_level,
                 potential=potential,
                 r_grid=r_grid,
+                should_find_wave=True,
             )
             steps_and_max_radius_to_bound_state[
                 (number_of_steps, max_radius)
@@ -322,6 +325,7 @@ class PointNucleusEnergyLevelsFindBoundState(Task):
                     l_level=l_level,
                     potential=potential,
                     r_grid=r_grid,
+                    should_find_wave=True,
                 )
                 table_rows.append(
                     [
@@ -407,6 +411,7 @@ class SmearedPotential(Task):
                     l_level=l_level,
                     min_energy=min_energy,
                     max_energy=max_energy,
+                    should_find_wave=False,
                 )
                 smeared_solution = numeric.find_bound_state(
                     potential=smeared_potential,
@@ -417,10 +422,11 @@ class SmearedPotential(Task):
                     l_level=l_level,
                     min_energy=min_energy,
                     max_energy=max_energy,
+                    should_find_wave=False,
                 )
                 energy_perturbation = numeric.energy_shift_perturbation(
                     r_grid=r_grid,
-                    wave=point_solution.uwave_function,
+                    basic_solution=point_solution,
                     perturbation_potential=lambda r: smeared_potential(r)
                     - point_potential(r),
                 )
@@ -437,7 +443,8 @@ class SmearedPotential(Task):
                         smeared_solution.energy,
                         smeared_solution.energy - point_solution.energy,
                         energy_perturbation,
-                        (smeared_solution.energy - point_solution.energy) / point_solution.energy,
+                        (smeared_solution.energy - point_solution.energy)
+                        / point_solution.energy,
                         error,
                     ]
                 )
@@ -469,45 +476,98 @@ class SmearedPotential(Task):
         self._close_output_files()
 
 
-class Task5(Task):
+class Relativistic(Task):
+    def __init__(self, max_n_level, max_l_level, ngrid, **kwargs):
+        super().__init__(**kwargs)
+        self.max_n_level = max_n_level
+        self.max_l_level = max_l_level
+        self.ngrid = ngrid
+
     def run(self, output_dir):
         self._open_output_files(pathlib.Path(output_dir))
         self._log(f"Start")
 
-        potential = potentials.get_coulomb_potential
+        potential = potentials.get_coulomb_potential(
+            constants.Z * constants.HBARC * constants.ALPHA_FS
+        )
 
-        nmax = 4
-        lmax = 2
-        ngrid = 200000
         # n = radial excitation
         # l = orbital mometum
         self._log(f"\n Units MeV, fm")
-        for l in range(0, lmax + 1):
-            Esteps = np.zeros(nmax - l + 1)
-            ## COMPLETE ##
+        table_rows = []
+        for n_level in range(2, self.max_n_level + 1):
+            for l_level in range(0, min(n_level, self.max_l_level + 1)):
+                n_level_to_energy = [
+                    -0.7 * constants.RY / (n ** 2) if n > 0 else -1.3 * constants.RY
+                    for n in range(0, self.max_n_level + 1)
+                ]
 
-            ## define Esteps that bracket the energy roots
-
-            ## COMPLETE ##
-
-            for n in range(1, nmax - l + 1):
-                Emin = Esteps[n - 1]
-                Emax = Esteps[n]
-                rmin = 0
-                rmax = (n + l) * 25 * constants.A_BHOR
-                r_grid = np.linspace(rmin, rmax, num=ngrid, endpoint=True)
-
-                ## COMPLETE ##
-                Enr = 1
-                Ekg = 1
-                ## Enr,wfnr = FindBoundState(...)
-                ## Ekg,wfkg = FindBoundStateKG(...)
-                ## COMPLETE ##
-
-                diff = 1 - Ekg / Enr
-                self._log(
-                    f"  n={n:2d} l={l:2d}  E_NR = {Enr:.6E}  E_KG = {Ekg:.6e}"
-                    + f"  E_NR/Ry = {Enr / constants.RY:.6e}  E_KG/Ry = {Ekg / RY:.6e}  |1-E_KG/E_NR| = {diff:.3e}"
+                min_energy = n_level_to_energy[n_level - 1]
+                max_energy = n_level_to_energy[n_level]
+                min_radius = 1e-6 * constants.A_BHOR
+                max_radius = (n_level + l_level) * 25 * constants.A_BHOR
+                r_grid = np.linspace(
+                    min_radius, max_radius, num=self.ngrid, endpoint=True
                 )
 
+                rel_solution = numeric.find_bound_state(
+                    potential=potential,
+                    r_grid=r_grid,
+                    mass_a=constants.M_PION,
+                    mass_b=constants.N_NUCL,
+                    n_level=n_level,
+                    l_level=l_level,
+                    min_energy=min_energy,
+                    max_energy=max_energy,
+                    should_find_wave=False,
+                    numerov_case=numeric.NumerovCase.RELATIVISTIC,
+                )
+                non_rel_solution = numeric.find_bound_state(
+                    potential=potential,
+                    r_grid=r_grid,
+                    mass_a=constants.M_PION,
+                    mass_b=constants.N_NUCL,
+                    n_level=n_level,
+                    l_level=l_level,
+                    min_energy=min_energy,
+                    max_energy=max_energy,
+                    should_find_wave=False,
+                    numerov_case=numeric.NumerovCase.NON_RELATIVISTIC,
+                )
+                diff = 1 - rel_solution.energy / non_rel_solution.energy
+                table_rows.append(
+                    [
+                        n_level,
+                        l_level,
+                        non_rel_solution.energy,
+                        rel_solution.energy,
+                        non_rel_solution.energy / constants.RY,
+                        rel_solution.energy / constants.RY,
+                        diff,
+                    ]
+                )
+                self._log(
+                    f"  n={n_level:2d} l={l_level:2d}  "
+                    f"E_NR = {non_rel_solution.energy:.6E}  E_KG = {rel_solution.energy:.6e}"
+                    + f"  E_NR/Ry = {non_rel_solution.energy / constants.RY:.6e}  "
+                    f"E_KG/Ry = {rel_solution.energy / constants.RY:.6e} "
+                    f" |1-E_KG/E_NR| = {diff:.3e}"
+                )
+
+        self._log(
+            "\n\n"
+            + tabulate.tabulate(
+                sorted(table_rows, key=lambda row: (row[0], row[1])),
+                headers=[
+                    "n",
+                    "l",
+                    "E_NR",
+                    "E_KG",
+                    "E_NR/Ry",
+                    "E_KG/Ry",
+                    "|1-E_KG/E_NR|",
+                ],
+                tablefmt="fancy_grid",
+            )
+        )
         self._close_output_files()
