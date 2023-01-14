@@ -495,7 +495,7 @@ class Relativistic(Task):
         # l = orbital mometum
         self._log(f"\n Units MeV, fm")
         table_rows = []
-        for n_level in range(2, self.max_n_level + 1):
+        for n_level in range(1, self.max_n_level + 1):
             for l_level in range(0, min(n_level, self.max_l_level + 1)):
                 n_level_to_energy = [
                     -0.7 * constants.RY / (n ** 2) if n > 0 else -1.3 * constants.RY

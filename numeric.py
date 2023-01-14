@@ -122,8 +122,12 @@ def find_bound_state(
         min_energy_solution, max_energy_solution, key=lambda s: s.abs_at_infinity
     )
     if np.sign(min_energy_solution.at_infinity * max_energy_solution.at_infinity) == 1:
-        logging.warning("max_energy and min_energy has same sign at infinity")
-        import ipdb; ipdb.set_trace()
+        logging.error(
+            f"max_energy and min_energy has same sign at infinity "
+            f"(n_level={n_level}, l_level={l_level}, "
+            f"min_energy={min_energy}, max_energy={max_energy})"
+        )
+        raise ValueError("max_energy and min_energy has same sign at infinity")
 
     previous_energy = np.inf
     i = 0
@@ -131,14 +135,11 @@ def find_bound_state(
         abs(current_solution.at_infinity) > exit_param
         and abs(max_energy_solution.energy - min_energy_solution.energy) > exit_param
     ):
-        # print(
-        #     f"current energy: {current_solution.energy / constants.RY}, at_infinity: {current_solution.at_infinity}"
-        # )
-        i += 1
-        if i % 100 == 0:
+        if i % 5 == 0:
             logging.info(
-                f"iteration {i}, at_infinity {current_solution.abs_at_infinity}, energy {current_solution.energy}"
+                f"(n={n_level} l={l_level}) iteration {i}, at_infinity {current_solution.abs_at_infinity}, energy {current_solution.energy}"
             )
+        i += 1
         if i > max_iterations:
             logging.warning("Max iterations reached")
             break
