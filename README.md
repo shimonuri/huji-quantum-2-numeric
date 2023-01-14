@@ -1,4 +1,3 @@
-To Run
 python run.py <task numbers>
 
 for example, to run task 1 and 2, run
