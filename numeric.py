@@ -33,10 +33,11 @@ def numerov_wf(
     wave_function = solution.add_spherical_harmonic(
         wave_function_no_sph, l_level=l_level, m_level=0
     )
-    norm = solution.get_norm(wave_function, r_grid)
+    wave_norm = solution.get_norm(wave_function, r_grid)
+    uwave_norm = solution.get_norm(u_wave_function, r_grid)
     return solution.Solution(
-        uwave_function=(1 / norm) * u_wave_function,
-        wave_function=(1 / norm) * wave_function_no_sph,
+        uwave_function=(1 / uwave_norm) * u_wave_function,
+        wave_function=(1 / wave_norm) * wave_function_no_sph,
         n_level=n_level,
         l_level=l_level,
         m_level=0,
@@ -79,7 +80,6 @@ def find_bound_state(
         abs(current_solution.at_infinity) > exit_param
         and abs(max_energy_solution.energy - min_energy_solution.energy) > exit_param
     ):
-        print(current_solution.at_infinity)
         i += 1
         if i % 100 == 0:
             logging.info(
@@ -144,6 +144,6 @@ def numerov_kgwf(E, l, potential, r_grid):
     return (1 / norm) * wave_function
 
 
-def energy_shift_perturbation(r_grid, wave, perturbation_potential):
+def energy_shift_perturbation(r_grid, solution, perturbation_potential):
     perturbation = np.array([perturbation_potential(r) for r in r_grid])
-    return np.trapz(y=perturbation * (wave ** 2), x=r_grid)
+    return np.trapz(y=perturbation * (solution.uwave_function ** 2), x=r_grid)
