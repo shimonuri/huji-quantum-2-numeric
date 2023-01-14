@@ -1,4 +1,5 @@
-usage: python run.py <task numbers>
+# Usage
+python run.py <task numbers>
 
 for example, to run task 1 and 2, run
 
