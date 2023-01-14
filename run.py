@@ -1,11 +1,14 @@
 import tasks
 import constants
 import numpy as np
+import click
 
 
-def main():
+@click.command()
+@click.argument("todos", nargs=-1)
+def main(todos):
     _print_hello_message()
-    for task in _get_tasks(["Task 2", "Task 3"]):
+    for task in _get_tasks(todos):
         task.run("output")
 
 

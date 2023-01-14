@@ -34,10 +34,9 @@ def numerov_wf(
         wave_function_no_sph, l_level=l_level, m_level=0
     )
     wave_norm = solution.get_norm(wave_function, r_grid)
-    uwave_norm = solution.get_norm(u_wave_function, r_grid)
     return solution.Solution(
-        uwave_function=(1 / uwave_norm) * u_wave_function,
-        wave_function=(1 / wave_norm) * wave_function_no_sph,
+        uwave_function=(1 / wave_norm) * u_wave_function,
+        wave_function=(1 / wave_norm) * wave_function,
         n_level=n_level,
         l_level=l_level,
         m_level=0,
@@ -146,4 +145,4 @@ def numerov_kgwf(E, l, potential, r_grid):
 
 def energy_shift_perturbation(r_grid, solution, perturbation_potential):
     perturbation = np.array([perturbation_potential(r) for r in r_grid])
-    return np.trapz(y=perturbation * (solution.uwave_function ** 2), x=r_grid)
+    return np.trapz(y=perturbation * (solution.wave_function ** 2), x=r_grid)
