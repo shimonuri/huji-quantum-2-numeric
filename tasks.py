@@ -373,7 +373,8 @@ class PointNucleusEnergyLevelsFindBoundState(Task):
 
 
 class SmearedPotential(Task):
-    def __int__(self, max_n_level, max_l_level, ngrid):
+    def __init__(self, max_n_level, max_l_level, ngrid, **kwargs):
+        super().__init__(**kwargs)
         self.max_n_level = max_n_level
         self.max_l_level = max_l_level
         self.ngrid = ngrid
@@ -400,7 +401,7 @@ class SmearedPotential(Task):
             for n_level in range(1, self.max_n_level - l_level + 1):
                 max_energy = n_level_to_energy[n_level - 1]
                 min_energy = n_level_to_energy[n_level]
-                rmin = 0
+                rmin = 1e-6 * constants.A_BHOR
                 rmax = (n_level + l_level) * 20 * constants.A_BHOR
                 r_grid = np.linspace(rmin, rmax, num=self.ngrid, endpoint=True)
 
