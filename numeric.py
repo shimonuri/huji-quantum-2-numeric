@@ -55,8 +55,8 @@ def find_bound_state(
     l_level,
     min_energy,
     max_energy,
-    exit_param=1e-6,
-    max_iterations=int(100),
+    exit_param=1e-15,
+    max_iterations=int(50),
 ):
     if l_level > n_level - 1:
         raise ValueError("l_level must be less than n_level - 1")
@@ -75,7 +75,11 @@ def find_bound_state(
 
     previous_energy = np.inf
     i = 0
-    while abs(previous_energy - current_solution.energy) > exit_param:
+    while (
+        abs(current_solution.at_infinity) > exit_param
+        and abs(max_energy_solution.energy - min_energy_solution.energy) > exit_param
+    ):
+        print(current_solution.at_infinity)
         i += 1
         if i % 100 == 0:
             logging.info(
@@ -138,3 +142,8 @@ def numerov_kgwf(E, l, potential, r_grid):
     wave_function = np.zeros(len(r_grid))
     norm = solution.get_norm(wave_function, r_grid)
     return (1 / norm) * wave_function
+
+
+def energy_shift_perturbation(r_grid, wave, perturbation_potential):
+    perturbation = np.array([perturbation_potential(r) for r in r_grid])
+    return np.trapz(y=perturbation * (wave ** 2), x=r_grid)

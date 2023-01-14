@@ -9,17 +9,9 @@ import pathlib
 import numpy as np
 import constants
 import potentials
-import numerov
+import numeric
 import solution
 import scipy.constants
-
-
-def energy_shift_perutrbation(r_grid, u):
-    ##  COMPLETE  ##
-    e_shift = constants.DUMMY
-    ##  COMPLETE  ##
-
-    return e_shift
 
 
 class Task:
@@ -124,7 +116,7 @@ class PointNucleus(Task):
         for energy in energies:
             self._log(f"E={energy / constants.RY} Ry")
             solutions.append(
-                numerov.numerov_wf(
+                numeric.numerov_wf(
                     energy,
                     1,
                     l_level,
@@ -273,7 +265,7 @@ class PointNucleusFindBoundState(Task):
                 self.rmin, max_radius, num=number_of_steps, endpoint=True
             )
 
-            solution = numerov.find_bound_state(
+            solution = numeric.find_bound_state(
                 mass_a=constants.N_NUCL,
                 mass_b=constants.M_PION,
                 min_energy=self.energy_min,
@@ -321,7 +313,7 @@ class PointNucleusEnergyLevelsFindBoundState(Task):
                 min_energy = n_level_to_energy[n_level]
                 r_max = (n_level + l_level) * 20 * constants.A_BHOR
                 r_grid = np.linspace(self.rmin, r_max, num=self.ngrid, endpoint=True)
-                solution = numerov.find_bound_state(
+                solution = numeric.find_bound_state(
                     mass_a=constants.N_NUCL,
                     mass_b=constants.M_PION,
                     min_energy=max_energy,
@@ -387,29 +379,26 @@ class SmearedPotential(Task):
             constants.Z * constants.HBARC * constants.ALPHA_FS
         )
         smeared_potential = potentials.get_smeared_coulomb(
-            (constants.Z * scipy.constants.e) / (4 * np.pi * constants.R_NUCL ** 3 / 3)
+            (constants.Z * constants.ALPHA_FS * constants.HBARC)
+            / ((4 / 3) * np.pi * constants.R_NUCL ** 3)
         )
 
         # n_level = radial excitation
         # l_level = orbital mometum
         self._log(f"\n Units MeV, fm")
-        for l_level in range(0, self.max_l_level + 1):
-            n_level_to_energy = [
-                -0.8 * constants.RY / (n ** 2) if n > 0 else -1.1 * constants.RY
-                for n in range(0, self.max_n_level - l_level + 1)
-            ]
-            for n_level in range(1, self.max_n_level - l_level + 1):
+        table_rows = []
+        for n_level in range(1, self.max_n_level + 1):
+            for l_level in range(0, min(n_level, self.max_l_level + 1)):
+                n_level_to_energy = [
+                    -0.8 * constants.RY / (n ** 2) if n > 0 else -1.1 * constants.RY
+                    for n in range(0, self.max_n_level + 1)
+                ]
                 max_energy = n_level_to_energy[n_level - 1]
                 min_energy = n_level_to_energy[n_level]
                 rmin = 1e-6 * constants.A_BHOR
                 rmax = (n_level + l_level) * 20 * constants.A_BHOR
                 r_grid = np.linspace(rmin, rmax, num=self.ngrid, endpoint=True)
-
-                ## COMPLETE ##
-
-                dE_perturb = 0.0
-
-                point_solution = numerov.find_bound_state(
+                point_solution = numeric.find_bound_state(
                     potential=point_potential,
                     r_grid=r_grid,
                     mass_a=constants.M_PION,
@@ -419,7 +408,7 @@ class SmearedPotential(Task):
                     min_energy=min_energy,
                     max_energy=max_energy,
                 )
-                smeared_solution = numerov.find_bound_state(
+                smeared_solution = numeric.find_bound_state(
                     potential=smeared_potential,
                     r_grid=r_grid,
                     mass_a=constants.M_PION,
@@ -429,23 +418,54 @@ class SmearedPotential(Task):
                     min_energy=min_energy,
                     max_energy=max_energy,
                 )
-                ## dE_perturb = energy_shift_perutrbation(r_grid,wfp)
-                ## COMPLETE ##
-
-                umax = point_solution.at_infinity
-                Error = np.abs(
-                    1 - dE_perturb / (smeared_solution.energy - point_solution.energy)
+                energy_perturbation = numeric.energy_shift_perturbation(
+                    r_grid=r_grid,
+                    wave=point_solution.uwave_function,
+                    perturbation_potential=lambda r: smeared_potential(r)
+                    - point_potential(r),
+                )
+                error = np.abs(
+                    1
+                    - energy_perturbation
+                    / (smeared_solution.energy - point_solution.energy)
+                )
+                table_rows.append(
+                    [
+                        n_level,
+                        l_level,
+                        point_solution.energy,
+                        smeared_solution.energy,
+                        smeared_solution.energy - point_solution.energy,
+                        energy_perturbation,
+                        (smeared_solution.energy - point_solution.energy) / point_solution.energy,
+                        error,
+                    ]
                 )
                 self._log(
                     f"  n_level={n_level:2d} l_level={l_level:2d}  "
-                    f"Ep = {point_solution.energy:.6E}  Es = {Es:.6e}"
+                    f"Ep = {point_solution.energy:.6E}  Es = {smeared_solution.energy:.6e}"
                     + f"  dE_exct ={smeared_solution.energy - point_solution.energy:9.2e}  "
-                      f"dE_prtb ={dE_perturb:9.2e}"
-                    + f"  1-dE/E = "
-                      f"{(smeared_solution.energy - point_solution.energy) / point_solution.energy:.2e} "
-                      f" |1-dE_prtb/dE_exct| = {Error:.2e}"
+                    f"dE_prtb ={energy_perturbation:9.2e}" + f"  1-dE/E = "
+                    f"{(smeared_solution.energy - point_solution.energy) / point_solution.energy:.2e} "
+                    f" |1-dE_prtb/dE_exct| = {error:.2e}"
                 )
-
+        self._log(
+            "\n\n"
+            + tabulate.tabulate(
+                sorted(table_rows, key=lambda row: (row[0], row[1])),
+                headers=[
+                    "n_level",
+                    "l_level",
+                    "Ep",
+                    "Es",
+                    "dE_exct",
+                    "dE_prtb",
+                    "1-dE/E",
+                    "|1-dE_prtb/dE_exct|",
+                ],
+                tablefmt="fancy_grid",
+            )
+        )
         self._close_output_files()
 
 
