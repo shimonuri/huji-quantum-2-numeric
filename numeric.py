@@ -8,35 +8,43 @@ logging.getLogger().setLevel(logging.INFO)
 
 
 def numerov_wf(
-    energy, n_level, l_level, potential, r_grid, mass_a, mass_b,
+    energy, n_level, l_level, potential, r_grid, mass_a, mass_b, should_find_wave=False
 ):
     reduced_mass = mass_a * mass_b / (mass_a + mass_b)
     inhomogeneous = lambda r: ((2 * reduced_mass) / (constants.HBARC ** 2)) * (
         energy - potential(r)
     ) - (l_level * (l_level + 1)) / (r ** 2)
     r_diff = r_grid[1] - r_grid[0]
-    u_wave_function = np.zeros(len(r_grid))
-    u_wave_function[0] = 0
-    u_wave_function[1] = r_diff ** (l_level + 1)
+    uwave_function = np.zeros(len(r_grid))
+    uwave_function[0] = 0
+    uwave_function[1] = r_diff ** (l_level + 1)
 
     for i in range(1, len(r_grid) - 1):
-        u_wave_function[i + 1] = (
-            u_wave_function[i] * (2 - (5 / 6) * r_diff ** 2 * inhomogeneous(r_grid[i]))
-            - u_wave_function[i - 1]
+        uwave_function[i + 1] = (
+            uwave_function[i] * (2 - (5 / 6) * r_diff ** 2 * inhomogeneous(r_grid[i]))
+            - uwave_function[i - 1]
             * (1 + (1 / 12) * r_diff ** 2 * inhomogeneous(r_grid[i - 1]))
         ) / (1 + (1 / 12) * r_diff ** 2 * inhomogeneous(r_grid[i + 1]))
 
     wave_function_no_sph = np.zeros(len(r_grid))
-    for i in range(len(u_wave_function)):
-        wave_function_no_sph[i] = u_wave_function[i] / r_grid[i]
+    for i in range(len(uwave_function)):
+        wave_function_no_sph[i] = uwave_function[i] / r_grid[i]
 
-    wave_function = solution.add_spherical_harmonic(
-        wave_function_no_sph, l_level=l_level, m_level=0
-    )
-    wave_norm = solution.get_norm(wave_function, r_grid)
+    if should_find_wave:
+        wave_function = solution.add_spherical_harmonic(
+            wave_function_no_sph, l_level=l_level, m_level=0
+        )
+        wave_norm = solution.get_norm(wave_function, r_grid)
+        uwave_function = (1 / wave_norm) * uwave_function
+        wave_function = (1 / wave_norm) * wave_function
+    else:
+        wave_function = None
+        uwave_norm = solution.get_norm(uwave_function, r_grid)
+        uwave_function = (1 / uwave_norm) * uwave_function
+
     return solution.Solution(
-        uwave_function=(1 / wave_norm) * u_wave_function,
-        wave_function=(1 / wave_norm) * wave_function,
+        uwave_function=uwave_function,
+        wave_function=wave_function,
         n_level=n_level,
         l_level=l_level,
         m_level=0,
@@ -57,15 +65,16 @@ def find_bound_state(
     max_energy,
     exit_param=1e-15,
     max_iterations=int(50),
+    should_find_wave=False,
 ):
     if l_level > n_level - 1:
         raise ValueError("l_level must be less than n_level - 1")
 
     max_energy_solution = numerov_wf(
-        max_energy, n_level, l_level, potential, r_grid, mass_a, mass_b,
+        max_energy, n_level, l_level, potential, r_grid, mass_a, mass_b, should_find_wave
     )
     min_energy_solution = numerov_wf(
-        min_energy, n_level, l_level, potential, r_grid, mass_a, mass_b,
+        min_energy, n_level, l_level, potential, r_grid, mass_a, mass_b, should_find_wave
     )
     current_solution = min(
         min_energy_solution, max_energy_solution, key=lambda s: s.abs_at_infinity
@@ -97,6 +106,7 @@ def find_bound_state(
             min_energy_solution,
             potential,
             r_grid,
+            should_find_wave,
         )
         previous_energy = current_solution.energy
         current_solution = newton_energy_solution
@@ -123,6 +133,7 @@ def _get_newton_solution(
     min_energy_solution,
     potential,
     r_grid,
+    should_find_wave,
 ):
     linear_curve = scipy.stats.linregress(
         x=[min_energy_solution.at_infinity, max_energy_solution.at_infinity],
@@ -130,7 +141,7 @@ def _get_newton_solution(
     )
     newton_energy = linear_curve.intercept
     newton_energy_solution = numerov_wf(
-        newton_energy, n_level, l_level, potential, r_grid, mass_a, mass_b,
+        newton_energy, n_level, l_level, potential, r_grid, mass_a, mass_b, should_find_wave
     )
     return newton_energy_solution
 
