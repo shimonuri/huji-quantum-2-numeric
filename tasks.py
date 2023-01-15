@@ -325,7 +325,7 @@ class PointNucleusEnergyLevelsFindBoundState(Task):
                     l_level=l_level,
                     potential=potential,
                     r_grid=r_grid,
-                    should_find_wave=True,
+                    should_find_wave=False,
                 )
                 table_rows.append(
                     [

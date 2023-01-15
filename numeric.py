@@ -89,7 +89,7 @@ def find_bound_state(
     min_energy,
     max_energy,
     exit_param=1e-15,
-    max_iterations=int(100),
+    max_iterations=int(1000),
     should_find_wave=False,
     numerov_case=NumerovCase.NON_RELATIVISTIC,
 ):

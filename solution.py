@@ -37,7 +37,6 @@ class Solution:
     def rms_radius(self):
         return np.sqrt(
             np.sum(self.r_grid ** 2 * self.uwave_function ** 2)
-            / np.sum(self.uwave_function ** 2)
         )
 
 
