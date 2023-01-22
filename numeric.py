@@ -60,12 +60,12 @@ def numerov_wf(
             wave_function_no_sph, l_level=l_level, m_level=0
         )
         wave_norm = solution.get_norm(wave_function, r_grid)
-        uwave_function = (1 / wave_norm) * uwave_function
         wave_function = (1 / wave_norm) * wave_function
     else:
         wave_function = None
-        uwave_norm = solution.get_norm(uwave_function, r_grid)
-        uwave_function = (1 / uwave_norm) * uwave_function
+
+    uwave_norm = solution.get_norm(uwave_function, r_grid)
+    uwave_function = (1 / uwave_norm) * uwave_function
 
     return solution.Solution(
         uwave_function=uwave_function,

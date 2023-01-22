@@ -143,13 +143,14 @@ class PointNucleus(Task):
             np.array([wave_exact(r) for r in r_grid]), l_level=0, m_level=0
         )
         norm = solution.get_norm(wave_function, r_grid,)
+        uwave_norm = solution.get_norm(uwave_exact(r_grid), r_grid)
         return solution.Solution(
             energy=0.0,
             n_level=1,
             l_level=0,
             m_level=0,
             wave_function=(1 / norm) * wave_function,
-            uwave_function=(1 / norm) * np.array([uwave_exact(r) for r in r_grid]),
+            uwave_function=(1 / uwave_norm) * np.array([uwave_exact(r) for r in r_grid]),
             r_grid=r_grid,
             steps=len(r_grid),
         )
